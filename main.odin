@@ -1,35 +1,40 @@
 package primes
+//main.odin - Entry point and main control flow
 
 import "core:fmt"
-import "core:os"
 
+N :: 100
 PROFILING_ENABLED :: true
+OUTPUT_FILE :: "output.txt"
+
+Algorithm :: enum {
+    Test,
+}
 
 main :: proc() {
-    n: int = 100
+    primes: []int
+    
+    // Use the proxy function to generate primes
+    primes = generate_primes(N, .Test, PROFILING_ENABLED)
 
-    // Create and defer destruction of a heap-allocated array for storing primes
-    primes: []int = make([]int, n)
-    defer delete(primes)
+    // Write to file
+    write_primes_to_file(OUTPUT_FILE, primes)
+}
 
-    if PROFILING_ENABLED {
+generate_primes :: proc(n: int, algorithm: Algorithm = .Test, profiling_enabled: bool = false) -> []int {
+    // Pick a generator depending on the specified algorithm
+    generator: proc(int) -> []int
+    switch algorithm {
+        case .Test:
+            generator = gen_primes_test
+    }
+
+    if profiling_enabled {
         // Generate primes with profiling
-        profile_proc(generate_primes_test, &primes)
+        return profile(generator, n, "Test profile")[:]
     }
     else {
         // Generate primes without profiling
-        generate_primes_test(&primes)
+        return generator(n)[:]
     }
-
-    // Write array to file, newline-separated
-    file, err := os.open("output.txt", os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0o644)
-    defer os.close(file)
-    if err != nil do fmt.printfln("ERROR: %s", err)
-    for p in primes {
-        if p != 0 do fmt.fprintfln(file, "%i", p)
-    }
-}
-
-generate_primes_test :: proc(primes: ^[]int) {
-    primes[0] = 2
 }
