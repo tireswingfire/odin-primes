@@ -1,40 +1,45 @@
 package primes
-//main.odin - Entry point and main control flow
+//main.odin - Entry point and main control flow.
 
-import "core:fmt"
+import "core:flags"
+import "core:os"
 
-N :: 100
-PROFILING_ENABLED :: true
-OUTPUT_FILE :: "output.txt"
-
-Algorithm :: enum {
-    Test,
+Config :: struct {
+    n:         int    `args:"name=n,required" usage:"Generate primes up to this limit" default:"100"`,
+    method:    string `args:"name=m" usage:"Method/algorithm to use"`,
+    profile:   bool   `args:"name=p" usage:"Show time taken and memory usage"`,
+    output:    string `args:"name=o" usage:"Output file path; default is primes.txt"`,
 }
 
+DEFAULT_CFG: Config: {
+    n = 100,
+    method = "Test",
+    profile = false,
+    output = "primes.txt"
+}
+
+// Entry point; main procedure
 main :: proc() {
-    primes: []int
-    
-    // Use the proxy function to generate primes
-    primes = generate_primes(N, .Test, PROFILING_ENABLED)
-
-    // Write to file
-    write_primes_to_file(OUTPUT_FILE, primes)
-}
-
-generate_primes :: proc(n: int, algorithm: Algorithm = .Test, profiling_enabled: bool = false) -> []int {
-    // Pick a generator depending on the specified algorithm
-    generator: proc(int) -> []int
-    switch algorithm {
-        case .Test:
-            generator = gen_primes_test
+    // Parse command line arguments
+    cfg := DEFAULT_CFG
+    flags.parse_or_exit(&cfg, os.args)
+    // Default to first method in list
+    method := METHODS[0]
+    for m in METHODS {
+        if cfg.method == m.name do method = m
     }
-
-    if profiling_enabled {
+    
+    // Generate primes
+    primes: []int
+    if cfg.profile {
         // Generate primes with profiling
-        return profile(generator, n, "Test profile")[:]
+        primes = profile_proc(method.generate, cfg.n, method.name)
     }
     else {
         // Generate primes without profiling
-        return generator(n)[:]
+        primes = method.generate(cfg.n)
     }
+
+    // Write to file
+    write_primes_to_file(cfg.output, primes)
 }

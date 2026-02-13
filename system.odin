@@ -1,5 +1,5 @@
 package primes
-//system.odin - Operating system interactions
+//system.odin - Operating system and command line interactions.
 
 import "core:fmt"
 import "core:time"
@@ -8,7 +8,7 @@ import "core:os"
 
 // Runs the passed procedure and tracks time elapsed and memory usage.
 // Compatible only with procedures of signature: (int) -> []int.
-profile :: proc(proc_to_profile: proc(int) -> []int, n: int, label: string = "Unnamed") -> []int {
+profile_proc :: proc(proc_to_profile: proc(int) -> []int, n: int, label: string = "Unnamed") -> []int {
     // Create and defer destruction of memory tracker
     mem_tracker: mem.Tracking_Allocator
     mem.tracking_allocator_init(&mem_tracker, context.allocator)
@@ -30,7 +30,7 @@ profile :: proc(proc_to_profile: proc(int) -> []int, n: int, label: string = "Un
     // Print profile results to console
     fmt.printfln("Profile: %s =====", label)
     fmt.printfln("Time:    %.3f ms", elapsed_ms)
-    fmt.printfln("Primes:  %d", n)
+    fmt.printfln("Maximum: %d", n)
     fmt.printfln("Memory allocation =====")
     fmt.printfln("Peak:    %v bytes", mem_tracker.peak_memory_allocated)
     fmt.printfln("Total:   %v bytes", mem_tracker.total_memory_allocated)
@@ -47,6 +47,6 @@ write_primes_to_file :: proc(filename: string, primes: []int) {
     // Write slice values to file, newline-separated
     if err != nil do fmt.printfln("ERROR: %s", err)
     for p in primes {
-        if p != 0 do fmt.fprintfln(file, "%i", p)
+        fmt.fprintfln(file, "%i", p)
     }
 }
