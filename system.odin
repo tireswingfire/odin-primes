@@ -16,81 +16,101 @@ print_help_message :: proc() {
         "\t-m --method <string>  | Method/algorithm to use\n",
         "\t\tTest     - Placeholder method\n",
         "\t-p --profile          | Track time elapsed and memory usage\n",
-        "\t-o --output <path>    | Output file to export to\n",
+        "\t-o --output <path>    | Output file to export to\n\n",
     sep="")
 }
 
 // Parses command line arguments and populates a configuration struct accordingly
-parse_clargs_config :: proc() -> (config: Config) {
-    // Initialize to default; return if no arguments were passed
+parse_clargs_config :: proc() -> (config: Config, ok: bool) {
+    // Initialize config to default; return if no arguments were passed
     config = DEFAULT_CFG
-    if len(os.args) == 1 do return config
+    if len(os.args) <= 1 do return config, true
 
-    // Invalid argument handler
+    // Invalid argument messenger
     invalid :: proc(message: string) {
-        fmt.println("Invalid argument:", message)
+        fmt.eprintln("Error:", message)
         print_help_message()
-        os.exit(1)
     }
 
-    // Help message argument
-    if os.args[1] == "-h" || os.args[1] == "--help" {
-        print_help_message()
-        os.exit(0)
-    }
-
-    // Operational arguments
+    // Parse arguments
     for arg, i in os.args {
         switch arg {
+        // Help argument
+        case "-h", "--help":
+            print_help_message()
+            config.help = true
+
+        // Upper limit argument
         case "-n", "--count":
-            err_message := "Must provide an integer following -n or --count."
-            if len(os.args) == i + 1 do invalid(err_message) // Check for next arg
-            n, ok := strconv.parse_int(os.args[i + 1]) // Parse next arg
-            if !ok do invalid(err_message) // Next arg must be integer
+            if i+1 >= len(os.args) { // Check for next arg
+                invalid("An integer argument is required for -n / --count.")
+                return {}, false
+            }
+            n, ok := strconv.parse_int(os.args[i+1]) // Parse next arg
+            if !ok { // Next arg must be integer
+                invalid(fmt.aprintf("Invalid integer for -n / --count: %q", os.args[i+1]))
+                return {}, false
+            }
             config.n = n
 
+        // Method selection argument
         case "-m", "--method":
-            err_message := "Must provide a valid method name following -m or --method."
-            if len(os.args) == i + 1 do invalid(err_message) // Check for next arg
+            if i+1 >= len(os.args) { // Check for next arg
+                invalid("A method name argument is required for -m / --method.")
+                return {}, false
+            }
             valid := false
             for m in METHODS { // Search and match next arg in METHODS, case insensitive
-                if strings.to_lower(os.args[i + 1]) == strings.to_lower(m.name) {
+                if strings.to_lower(os.args[i+1]) == strings.to_lower(m.name) {
                     config.method = m
                     valid = true
                 }
             }
-            // Next arg must be a valid method in METHODS
-            if !valid do invalid(err_message)
+            if !valid { // Next arg must be a valid method in METHODS
+                invalid(fmt.aprintf("Invalid method name for -m / --method: %q", os.args[i+1]))
+                return {}, false
+            }
 
+        // Output file path argument
         case "-o", "--output":
-            err_message := "Must provide a file path following -o or --output"
-            if len(os.args) == i + 1 do invalid(err_message) // Check for next arg
-            config.output = os.args[i + 1] // Next arg is taken at face value
+            if i+1 >= len(os.args) {
+                invalid("A file path is required for -o / --output.")
+                return {}, false
+            } // Check for next arg
+            config.output = os.args[i+1] // Next arg is taken at face value
             
+        // Profiling argument
         case "-p", "--profile":
             config.profile = true // Simple boolean argument
         }
     }
     
-    return config
+    return config, true
 }
 
 // Writes a slice of integers to file, newline-separated
-write_primes_to_file :: proc(filename: string, primes: []int) {
-    // Open and defer closing of file
+write_primes_to_file :: proc(filename: string, primes: []int) -> (ok: bool) {
+    // Open and defer closing of file; return upon error
     file, err := os.open(filename, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0o644)
+    if err != nil {
+        fmt.eprintfln("Failed to open output file %q: %v", filename, err)
+        return false
+    }
     defer os.close(file)
     
-    // Write slice values to file, newline-separated
+    // Write slice values to file, newline-separated; return upon interruption
     if err != nil do fmt.printfln("ERROR: %s", err)
     for p in primes {
-        fmt.fprintfln(file, "%i", p)
+        printed := fmt.fprintfln(file, "%d", p)
+        if printed != 0 do return false
     }
+    
+    return true
 }
 
 // Runs the passed procedure and tracks time elapsed and memory usage.
 // Compatible only with procedures of signature: (int) -> []int.
-profile_proc :: proc(proc_to_profile: proc(int) -> []int, n: int, label: string = "Unnamed") -> []int {
+profile_proc :: proc(proc_to_profile: proc(int) -> ([]int, bool), n: int, label: string = "Unnamed") -> (primes: []int, ok: bool) {
     // Create and defer destruction of memory tracker
     mem_tracker: mem.Tracking_Allocator
     mem.tracking_allocator_init(&mem_tracker, context.allocator)
@@ -103,8 +123,12 @@ profile_proc :: proc(proc_to_profile: proc(int) -> []int, n: int, label: string 
 
     // Profile the passed procedure
     time.stopwatch_start(&timer)
-    primes := proc_to_profile(n)
+    primes, ok = proc_to_profile(n)
     time.stopwatch_stop(&timer)
+    if !ok { // Handle errors
+        fmt.eprintfln("Profiled function %q failed for n = %d", label, n)
+        return nil, false
+    }
 
     // Get elapsed time in milliseconds
     elapsed_ms := f64(time.duration_milliseconds(time.stopwatch_duration(timer)))
@@ -117,5 +141,5 @@ profile_proc :: proc(proc_to_profile: proc(int) -> []int, n: int, label: string 
     fmt.printfln("Peak:    %v bytes", mem_tracker.peak_memory_allocated)
     fmt.printfln("Total:   %v bytes", mem_tracker.total_memory_allocated)
 
-    return primes[:]
+    return primes, ok
 }

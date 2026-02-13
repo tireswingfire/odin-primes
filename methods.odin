@@ -4,19 +4,18 @@ package primes
 // Name-procedure pair for methods
 Method :: struct {
     name: string,
-    generate: proc(n: int) -> []int
+    generate: proc(int) -> ([]int, bool)
 }
 
-// Method registry; pairs each method below with a name (string)
+// Method registry; pairs each generator below with a name (string)
 METHODS :: []Method {
-    {"Test", gen_primes_test},
+    {"Test", primes_test},
 }
 
-// Placeholder method, returns only the very first prime, 2.
-gen_primes_test :: proc(n: int) -> (primes: []int) {
+// Placeholder generator, returns only the very first prime, 2.
+primes_test :: proc(n: int) -> (primes: []int, ok: bool) {
     primes = make([]int, 1)
-    defer delete(primes)
     primes[0] = 2
 
-    return primes[:]
+    return primes, true
 }
