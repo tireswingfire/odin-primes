@@ -12,7 +12,7 @@ Config :: struct {
     help:      bool,
 }
 
-DEFAULT_CFG: Config: {
+default_cfg: Config: {
     n = 100,
     method = METHODS[0],
     profile = false,
@@ -48,6 +48,6 @@ main :: proc() {
     if !ok do exit(1, "Failed to generate primes!")
 
     // Write to file
-    write_primes_to_file(cfg.output, primes)
-    if !ok do exit(1, "Failed to write primes to file!")
+    err := write_primes_to_file(cfg.output, primes)
+    if err != nil do exit(1, "Failed to write primes to file!")
 }

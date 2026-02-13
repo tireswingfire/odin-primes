@@ -4,7 +4,7 @@ package primes
 // Name-procedure pair for methods
 Method :: struct {
     name: string,
-    generate: proc(int) -> ([]int, bool)
+    generate: proc(n: int, allocator := context.allocator) -> ([]int, bool)
 }
 
 // Method registry; pairs each generator below with a name (string)
@@ -13,7 +13,7 @@ METHODS :: []Method {
 }
 
 // Placeholder generator, returns only the very first prime, 2.
-primes_test :: proc(n: int) -> (primes: []int, ok: bool) {
+primes_test :: proc(n: int, allocator := context.allocator) -> (primes: []int, ok: bool) {
     primes = make([]int, 1)
     primes[0] = 2
 

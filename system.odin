@@ -11,19 +11,21 @@ import "core:strings"
 // Help message to print when -h or --help argument is passed
 print_help_message :: proc() {
     fmt.print(
-        "Usage:\n",
-        "\t-n --count <int>      | Generate primes up to this limit\n",
-        "\t-m --method <string>  | Method/algorithm to use\n",
-        "\t\tTest     - Placeholder method\n",
-        "\t-p --profile          | Track time elapsed and memory usage\n",
-        "\t-o --output <path>    | Output file to export to\n\n",
-    sep="")
+        "Usage:",
+        "\t-n --count <int>      | Generate primes up to this limit",
+        "\t-m --method <name>    | Method/algorithm to use",
+        "\t\tTest     - Placeholder method",
+        "\t-p --profile          | Track time elapsed and memory usage",
+        "\t-o --output <path>    | Output file to export to",
+        "\t-h --help             | Show this help message",
+        "\n",
+    sep="\n")
 }
 
 // Parses command line arguments and populates a configuration struct accordingly
 parse_clargs_config :: proc() -> (config: Config, ok: bool) {
     // Initialize config to default; return if no arguments were passed
-    config = DEFAULT_CFG
+    config = default_cfg
     if len(os.args) <= 1 do return config, true
 
     // Invalid argument messenger
@@ -48,7 +50,7 @@ parse_clargs_config :: proc() -> (config: Config, ok: bool) {
             }
             n, ok := strconv.parse_int(os.args[i+1]) // Parse next arg
             if !ok { // Next arg must be integer
-                invalid(fmt.aprintf("Invalid integer for -n / --count: %q", os.args[i+1]))
+                invalid(fmt.tprintf("Invalid integer for -n / --count: %q", os.args[i+1]))
                 return {}, false
             }
             config.n = n
@@ -61,13 +63,13 @@ parse_clargs_config :: proc() -> (config: Config, ok: bool) {
             }
             valid := false
             for m in METHODS { // Search and match next arg in METHODS, case insensitive
-                if strings.to_lower(os.args[i+1]) == strings.to_lower(m.name) {
+                if strings.equal_fold(os.args[i+1], m.name) {
                     config.method = m
                     valid = true
                 }
             }
             if !valid { // Next arg must be a valid method in METHODS
-                invalid(fmt.aprintf("Invalid method name for -m / --method: %q", os.args[i+1]))
+                invalid(fmt.tprintf("Invalid method name for -m / --method: %q", os.args[i+1]))
                 return {}, false
             }
 
@@ -89,27 +91,30 @@ parse_clargs_config :: proc() -> (config: Config, ok: bool) {
 }
 
 // Writes a slice of integers to file, newline-separated
-write_primes_to_file :: proc(filename: string, primes: []int) -> (ok: bool) {
+write_primes_to_file :: proc(filename: string, primes: []int) -> os.Error {
     // Open and defer closing of file; return upon error
     file, err := os.open(filename, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0o644)
     if err != nil {
         fmt.eprintfln("Failed to open output file %q: %v", filename, err)
-        return false
+        return err
     }
     defer os.close(file)
     
     // Write slice values to file, newline-separated; return upon interruption\
     for p in primes {
-        printed := fmt.fprintfln(file, "%d", p)
-        if printed != 0 do return false
+        bytes_printed := fmt.fprintfln(file, "%d", p)
+        if bytes_printed <= 0 {
+            fmt.eprintfln("Write failed on prime %d", p)
+            return os.ERROR_OPERATION_ABORTED
+        } 
     }
     
-    return true
+    return nil
 }
 
 // Runs the passed procedure and tracks time elapsed and memory usage.
 // Compatible only with procedures of signature: (int) -> []int.
-profile_proc :: proc(proc_to_profile: proc(int) -> ([]int, bool), n: int, label: string = "Unnamed") -> (primes: []int, ok: bool) {
+profile_proc :: proc(proc_to_profile: proc(n: int, allocator := context.allocator) -> ([]int, bool), n: int, label: string = "Unnamed") -> (primes: []int, ok: bool) {
     // Create and defer destruction of memory tracker
     mem_tracker: mem.Tracking_Allocator
     mem.tracking_allocator_init(&mem_tracker, context.allocator)
