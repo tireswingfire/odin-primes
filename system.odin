@@ -54,7 +54,7 @@ parse_clargs_config :: proc() -> (config: Config) {
             valid := false
             for m in METHODS { // Search and match next arg in METHODS
                 if os.args[i + 1] == m.name {
-                    config.method = m.name
+                    config.method = m
                     valid = true
                 }
             }
