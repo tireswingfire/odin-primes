@@ -6,6 +6,7 @@ import "core:time"
 import "core:mem"
 import "core:os"
 import "core:strconv"
+import "core:strings"
 
 // Help message to print when -h or --help argument is passed
 print_help_message :: proc() {
@@ -52,8 +53,8 @@ parse_clargs_config :: proc() -> (config: Config) {
             err_message := "Must provide a valid method name following -m or --method."
             if len(os.args) == i + 1 do invalid(err_message) // Check for next arg
             valid := false
-            for m in METHODS { // Search and match next arg in METHODS
-                if os.args[i + 1] == m.name {
+            for m in METHODS { // Search and match next arg in METHODS, case insensitive
+                if strings.to_lower(os.args[i + 1]) == strings.to_lower(m.name) {
                     config.method = m
                     valid = true
                 }
