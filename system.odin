@@ -98,8 +98,7 @@ write_primes_to_file :: proc(filename: string, primes: []int) -> (ok: bool) {
     }
     defer os.close(file)
     
-    // Write slice values to file, newline-separated; return upon interruption
-    if err != nil do fmt.printfln("ERROR: %s", err)
+    // Write slice values to file, newline-separated; return upon interruption\
     for p in primes {
         printed := fmt.fprintfln(file, "%d", p)
         if printed != 0 do return false
