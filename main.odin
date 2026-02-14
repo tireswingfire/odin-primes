@@ -3,11 +3,13 @@ package primes
 
 import "core:fmt"
 import "core:os"
+import "core:mem"
+import "core:time"
 
 Config :: struct {
     n:         int,
     method:    Method,
-    profile:   bool,
+    profiling: bool,
     output:    string,
     help:      bool,
 }
@@ -15,39 +17,56 @@ Config :: struct {
 default_cfg: Config: {
     n = 100,
     method = METHODS[0],
-    profile = false,
+    profiling = false,
     output = "primes.txt",
     help = false,
 }
 
 // Entry point; main procedure
 main :: proc() {
-    // Exit procedure
-    exit :: proc(code: int, message: string = "") {
-        fmt.eprintln(message)
-        os.exit(code)
-    }
-
     // Parse command line arguments
     cfg, ok := parse_clargs_config()
     if !ok do exit(1, "Failed to parse command line arguments!")
-    
     // Exit early if help argument was passed
-    if cfg.help do os.exit(0)
+    if cfg.help do exit(0)
 
-    // Generate primes
+    // Start memory tracking if profiling
+    mem_tracker: mem.Tracking_Allocator
+    mem.tracking_allocator_init(&mem_tracker, context.allocator)
+    context.allocator = mem.tracking_allocator(&mem_tracker)
+    defer mem.tracking_allocator_destroy(&mem_tracker)
+
+    // Array for storing primes
     primes: []int
-    if cfg.profile {
-        // Generate primes with profiling
-        primes, ok = profile_proc(cfg.method.generate, cfg.n, cfg.method.name)
-    }
-    else {
-        // Generate primes without profiling
-        primes, ok = cfg.method.generate(cfg.n)
-    }
-    if !ok do exit(1, "Failed to generate primes!")
+    defer delete(primes)
 
+    // Generate primes (with timer if profiling); exit on failure
+    timer: time.Stopwatch
+    if cfg.profiling do time.stopwatch_start(&timer)
+    primes, ok = cfg.method.generate(cfg.n, context.allocator)
+    if !ok do exit(1, "Failed to generate primes!")
+    if cfg.profiling do time.stopwatch_stop(&timer)
+    
+    // Print profile results to console
+    if cfg.profiling {
+        // Get elapsed time in milliseconds
+        elapsed_ms := f64(time.duration_milliseconds(time.stopwatch_duration(timer)))
+
+        fmt.printfln("Profile: %s =====", cfg.method.name)
+        fmt.printfln("Time:    %.3f ms", elapsed_ms)
+        fmt.printfln("Maximum: %d", cfg.n)
+        fmt.printfln("Memory allocation =====")
+        fmt.printfln("Peak:    %v B", mem_tracker.peak_memory_allocated)
+        fmt.printfln("Total:   %v B", mem_tracker.total_memory_allocated)
+    }
+    
     // Write to file
     err := write_primes_to_file(cfg.output, primes)
     if err != nil do exit(1, "Failed to write primes to file!")
+}
+
+// Exit procedure
+exit :: proc(code: int, message: string = "") {
+    if message != "" do fmt.eprintln(message)
+    os.exit(code)
 }

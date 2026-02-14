@@ -2,24 +2,20 @@ package primes
 //system.odin - Operating system and command line interactions.
 
 import "core:fmt"
-import "core:time"
-import "core:mem"
 import "core:os"
 import "core:strconv"
 import "core:strings"
 
 // Help message to print when -h or --help argument is passed
 print_help_message :: proc() {
-    fmt.print(
-        "Usage:",
-        "\t-n --count <int>      | Generate primes up to this limit",
-        "\t-m --method <name>    | Method/algorithm to use",
-        "\t\tTest     - Placeholder method",
-        "\t-p --profile          | Track time elapsed and memory usage",
-        "\t-o --output <path>    | Output file to export to",
-        "\t-h --help             | Show this help message",
-        "\n",
-    sep="\n")
+    fmt.printfln("Usage:")
+    fmt.printfln("\t-n --count <int> (default:%v)  \t| Generate primes up to this limit", default_cfg.n)
+    fmt.printfln("\t-m --method <name> (default:%v)\t| Method/algorithm to use", default_cfg.method.name)
+    fmt.printfln("\t\tMethods:")
+    for m in METHODS do fmt.printfln("\t\t%s\t| %s", m.name, m.description)
+    fmt.printfln("\t-p --profile (default:%v)      \t| Track time elapsed and memory usage", default_cfg.profiling)
+    fmt.printfln("\t-o --output <path> (default:%v)\t| Output file to export to", default_cfg.output)
+    fmt.printfln("\t-h --help | Show this help message")
 }
 
 // Parses command line arguments and populates a configuration struct accordingly
@@ -30,63 +26,74 @@ parse_clargs_config :: proc() -> (config: Config, ok: bool) {
 
     // Invalid argument messenger
     invalid :: proc(message: string) {
-        fmt.eprintln("Error:", message)
+        fmt.eprintln("Invalid argument:", message)
         print_help_message()
     }
 
-    // Parse arguments
-    for arg, i in os.args {
+    // Safely gets the value for arguments that require one
+    get_value_for :: proc(i: int) -> (value: string, ok: bool) {
+        if i + 1 >= len(os.args) {
+            invalid(fmt.tprintf("Missing value after %q", os.args[i]))
+            return "", false
+        }
+        return os.args[i + 1], true
+    }
+
+    // Parse arguments starting at os:args[1], skip executable path at os:args[0]
+    for i := 1; i < len(os.args); i += 1 {
+        arg := os.args[i]
+
         switch arg {
         // Help argument
         case "-h", "--help":
             print_help_message()
             config.help = true
+            return config, true // Return early
+
+        // Profiling argument
+        case "-p", "--profile":
+            config.profiling = true
 
         // Upper limit argument
         case "-n", "--count":
-            if i+1 >= len(os.args) { // Check for next arg
-                invalid("An integer argument is required for -n / --count.")
-                return {}, false
-            }
-            n, ok := strconv.parse_int(os.args[i+1]) // Parse next arg
+            value := get_value_for(i) or_return // Get next arg if it exists
+            n, ok := strconv.parse_int(value) // Parse next arg
             if !ok { // Next arg must be integer
-                invalid(fmt.tprintf("Invalid integer for -n / --count: %q", os.args[i+1]))
+                invalid(fmt.tprintf("Invalid integer for -n / --count: %q", value))
                 return {}, false
             }
             config.n = n
+            i += 1 // Consume value and flag
 
         // Method selection argument
         case "-m", "--method":
-            if i+1 >= len(os.args) { // Check for next arg
-                invalid("A method name argument is required for -m / --method.")
-                return {}, false
-            }
-            valid := false
+            value := get_value_for(i) or_return // Get next arg if it exists
+            found := false
             for m in METHODS { // Search and match next arg in METHODS, case insensitive
-                if strings.equal_fold(os.args[i+1], m.name) {
+                if strings.equal_fold(value, m.name) {
                     config.method = m
-                    valid = true
+                    found = true
+                    break
                 }
             }
-            if !valid { // Next arg must be a valid method in METHODS
-                invalid(fmt.tprintf("Invalid method name for -m / --method: %q", os.args[i+1]))
+            if !found { // Next arg must be a valid method name
+                invalid(fmt.tprintf("Invalid method name for -m / --method: %q", value))
                 return {}, false
             }
+            i += 1 // Consume value and flag
 
         // Output file path argument
         case "-o", "--output":
-            if i+1 >= len(os.args) {
-                invalid("A file path is required for -o / --output.")
-                return {}, false
-            } // Check for next arg
-            config.output = os.args[i+1] // Next arg is taken at face value
-            
-        // Profiling argument
-        case "-p", "--profile":
-            config.profile = true // Simple boolean argument
+            value := get_value_for(i) or_return // Get next arg if it exists
+            config.output = value // Next arg is taken at face value
+            i += 1 // Consume value and flag
+
+        // Default case; unknown argument
+        case:
+            invalid(fmt.tprintf("Unknown argument %q", arg))
+            return {}, false
         }
     }
-    
     return config, true
 }
 
@@ -100,7 +107,7 @@ write_primes_to_file :: proc(filename: string, primes: []int) -> os.Error {
     }
     defer os.close(file)
     
-    // Write slice values to file, newline-separated; return upon interruption\
+    // Write slice values to file, newline-separated; return upon interruption
     for p in primes {
         bytes_printed := fmt.fprintfln(file, "%d", p)
         if bytes_printed <= 0 {
@@ -110,40 +117,4 @@ write_primes_to_file :: proc(filename: string, primes: []int) -> os.Error {
     }
     
     return nil
-}
-
-// Runs the passed procedure and tracks time elapsed and memory usage.
-// Compatible only with procedures of signature: (int) -> []int.
-profile_proc :: proc(proc_to_profile: proc(n: int, allocator := context.allocator) -> ([]int, bool), n: int, label: string = "Unnamed") -> (primes: []int, ok: bool) {
-    // Create and defer destruction of memory tracker
-    mem_tracker: mem.Tracking_Allocator
-    mem.tracking_allocator_init(&mem_tracker, context.allocator)
-    defer mem.tracking_allocator_destroy(&mem_tracker)
-    // Set current context allocator to the new tracking allocator
-    context.allocator = mem.tracking_allocator(&mem_tracker)
-
-    // Create stopwatch
-    timer: time.Stopwatch
-
-    // Profile the passed procedure
-    time.stopwatch_start(&timer)
-    primes, ok = proc_to_profile(n)
-    time.stopwatch_stop(&timer)
-    if !ok { // Handle errors
-        fmt.eprintfln("Profiled function %q failed for n = %d", label, n)
-        return nil, false
-    }
-
-    // Get elapsed time in milliseconds
-    elapsed_ms := f64(time.duration_milliseconds(time.stopwatch_duration(timer)))
-
-    // Print profile results to console
-    fmt.printfln("Profile: %s =====", label)
-    fmt.printfln("Time:    %.3f ms", elapsed_ms)
-    fmt.printfln("Maximum: %d", n)
-    fmt.printfln("Memory allocation =====")
-    fmt.printfln("Peak:    %v bytes", mem_tracker.peak_memory_allocated)
-    fmt.printfln("Total:   %v bytes", mem_tracker.total_memory_allocated)
-
-    return primes, ok
 }
