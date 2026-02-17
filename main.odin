@@ -7,7 +7,7 @@ import "core:mem"
 import "core:time"
 
 Config :: struct {
-    n:         int,
+    n:         u64,
     method:    Method,
     profiling: bool,
     output:    string,
@@ -30,14 +30,14 @@ main :: proc() {
     // Exit early if help argument was passed
     if cfg.help do exit(0)
 
-    // Start memory tracking if profiling
+    // Start memory tracking for profiling purposes
     mem_tracker: mem.Tracking_Allocator
     mem.tracking_allocator_init(&mem_tracker, context.allocator)
     context.allocator = mem.tracking_allocator(&mem_tracker)
     defer mem.tracking_allocator_destroy(&mem_tracker)
 
     // Array for storing primes
-    primes: []int
+    primes: []u64
     defer delete(primes)
 
     // Generate primes (with timer if profiling); exit on failure

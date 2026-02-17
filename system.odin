@@ -9,7 +9,7 @@ import "core:strings"
 // Help message to print when -h or --help argument is passed
 print_help_message :: proc() {
     fmt.printfln("Usage:")
-    fmt.printfln("\t-n --count <int> (default:%v)  \t| Generate primes up to this limit", default_cfg.n)
+    fmt.printfln("\t-n --max <int> (default:%v)    \t| Generate primes up to this limit", default_cfg.n)
     fmt.printfln("\t-m --method <name> (default:%v)\t| Method/algorithm to use", default_cfg.method.name)
     fmt.printfln("\t\tMethods:")
     for m in METHODS do fmt.printfln("\t\t%s\t| %s", m.name, m.description)
@@ -55,11 +55,11 @@ parse_clargs_config :: proc() -> (config: Config, ok: bool) {
             config.profiling = true
 
         // Upper limit argument
-        case "-n", "--count":
+        case "-n", "--max":
             value := get_value_for(i) or_return // Get next arg if it exists
-            n, ok := strconv.parse_int(value) // Parse next arg
+            n, ok := strconv.parse_u64(value) // Parse next arg
             if !ok { // Next arg must be integer
-                invalid(fmt.tprintf("Invalid integer for -n / --count: %q", value))
+                invalid(fmt.tprintf("Invalid integer for -n / --max: %q", value))
                 return {}, false
             }
             config.n = n
@@ -98,7 +98,7 @@ parse_clargs_config :: proc() -> (config: Config, ok: bool) {
 }
 
 // Writes a slice of integers to file, newline-separated
-write_primes_to_file :: proc(filename: string, primes: []int) -> os.Error {
+write_primes_to_file :: proc(filename: string, primes: []u64) -> os.Error {
     // Open and defer closing of file; return upon error
     file, err := os.open(filename, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0o644)
     if err != nil {
