@@ -38,18 +38,15 @@ is_prime :: proc(c: u64) -> bool {
     return true
 }
 
-// Naive method, modulus check on all divisors between 2 and sqrt(c). 
+// Naive method, generates primes up to max value n.
+// For each candidate c, performs a modulus check on all divisors between 2 and sqrt(c). 
 primes_naive :: proc(n: u64, allocator := context.allocator) -> ([]u64, bool) {
     // Dynamic array has negligible overhead in this case.
-    primes, err := make([dynamic]u64)
-    if err != nil do return {}, false
+    primes := make([dynamic]u64)
     // Check all integers from 2 to n
     for c: u64 = 2; c <= n; c += 1 {
         // Modulus check
-        if is_prime(c) {
-            _, err := append(&primes, c)
-            if err != nil do return {}, false
-        }
+        if is_prime(c) do append(&primes, c)
     }
     return primes[:], true
 }
