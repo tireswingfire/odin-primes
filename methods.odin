@@ -18,8 +18,8 @@ METHODS :: []Method {
 }
 
 // Placeholder generator, returns only the very first prime, 2.
-primes_test :: proc(n: u64, allocator := context.allocator) -> (primes: []u64, ok: bool) {
-    primes = make([]u64, 1)
+primes_test :: proc(n: u64, allocator := context.allocator) -> ([]u64, bool) {
+    primes := make([]u64, 1)
     primes[0] = 2
 
     return primes[:], true
@@ -39,16 +39,17 @@ is_prime :: proc(c: u64) -> bool {
 }
 
 // Naive method, modulus check on all divisors between 2 and sqrt(c). 
-primes_naive :: proc(n: u64, allocator := context.allocator) -> (primes: []u64, ok: bool) {
-    primes = make([]u64, n)
-    index := 0
+primes_naive :: proc(n: u64, allocator := context.allocator) -> ([]u64, bool) {
+    // Dynamic array has negligible overhead in this case.
+    primes, err := make([dynamic]u64)
+    if err != nil do return {}, false
     // Check all integers from 2 to n
     for c: u64 = 2; c <= n; c += 1 {
         // Modulus check
         if is_prime(c) {
-            primes[index] = c
-            index += 1
+            _, err := append(&primes, c)
+            if err != nil do return {}, false
         }
     }
-    return primes[:index], true
+    return primes[:], true
 }

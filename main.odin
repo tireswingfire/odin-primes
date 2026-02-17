@@ -52,15 +52,16 @@ main :: proc() {
         // Get elapsed time in milliseconds
         elapsed_ms := f64(time.duration_milliseconds(time.stopwatch_duration(timer)))
 
-        fmt.printfln("Profile: %s =====", cfg.method.name)
-        fmt.printfln("Time:    %.3f ms", elapsed_ms)
-        fmt.printfln("Maximum: %d", cfg.n)
-        fmt.printfln("Memory allocation =====")
-        fmt.printfln("Peak:    %v B", mem_tracker.peak_memory_allocated)
-        fmt.printfln("Total:   %v B", mem_tracker.total_memory_allocated)
+        fmt.printfln("Profile:  %s  =====", cfg.method.name)
+        fmt.printfln("Time:     %.3f ms", elapsed_ms)
+        fmt.printfln("Maximum:  %d", cfg.n)
+        fmt.printfln("Primes:   %d", len(primes))
+        fmt.printfln("Memory allocation  =====")
+        fmt.printfln("Peak:     %v B", mem_tracker.peak_memory_allocated)
+        fmt.printfln("Total:    %v B", mem_tracker.total_memory_allocated)
     }
     
-    // Write to file
+    // Write primes to file; newline-separated 
     err := write_primes_to_file(cfg.output, primes)
     if err != nil do exit(1, "Failed to write primes to file!")
 }
