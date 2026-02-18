@@ -57,8 +57,8 @@ main :: proc() {
         fmt.printfln("Maximum:  %d", cfg.n)
         fmt.printfln("Primes:   %d", len(primes))
         fmt.printfln("Memory allocation  =====")
-        fmt.printfln("Peak:     %v B", mem_tracker.peak_memory_allocated)
-        fmt.printfln("Total:    %v B", mem_tracker.total_memory_allocated)
+        fmt.printfln("Peak:     %.3f kiB", f32(mem_tracker.peak_memory_allocated) / 1000)
+        fmt.printfln("Total:    %.3f kiB", f32(mem_tracker.total_memory_allocated) / 1000)
     }
     
     // Write primes to file; newline-separated 

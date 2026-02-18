@@ -11,13 +11,14 @@ Method :: struct {
     generate: proc(n: u64, allocator := context.allocator) -> ([]u64, bool)
 }
 
-// Method registry; pairs each generator below with a name (string)
+// Method registry; pairs each method below with a name (string)
 METHODS :: []Method {
-    {"Test", "Placeholder generator, returns only the very first prime, 2.", primes_test},
-    {"Naive", "Naive generator, modulus check on all divisors between 2 and sqrt(c)", primes_naive},
+    {"Test", "Placeholder method, returns only the very first prime, 2.", primes_test},
+    {"NaiveTD", "Naive trial division method, modulus check on all divisors between 2 and sqrt(c)", primes_tridiv_naive},
+    {"PrimeTD", "Improved trial division method, modulus check on all PRIME divisors between 2 and sqrt(c)", primes_tridiv_prime},
 }
 
-// Placeholder generator, returns only the very first prime, 2.
+// Placeholder method, returns only the very first prime, 2.
 primes_test :: proc(n: u64, allocator := context.allocator) -> ([]u64, bool) {
     primes := make([]u64, 1)
     primes[0] = 2
@@ -38,15 +39,36 @@ is_prime :: proc(c: u64) -> bool {
     return true
 }
 
-// Naive method, generates primes up to max value n.
+// Naive trial division method, generates primes up to max value n.
 // For each candidate c, performs a modulus check on all divisors between 2 and sqrt(c). 
-primes_naive :: proc(n: u64, allocator := context.allocator) -> ([]u64, bool) {
+primes_tridiv_naive :: proc(n: u64, allocator := context.allocator) -> ([]u64, bool) {
     // Dynamic array has negligible overhead in this case.
-    primes := make([dynamic]u64)
-    // Check all integers from 2 to n
+    primes := make([dynamic]u64, 0, 8)
+    // Check all candidates from 2 to n
     for c: u64 = 2; c <= n; c += 1 {
-        // Modulus check
         if is_prime(c) do append(&primes, c)
+    }
+    return primes[:], true
+}
+
+// Prime trial division method, generates primes up to max value n.
+// For each candidate c, performs a modulus check on all PRIME divisors between 2 and sqrt(c).
+primes_tridiv_prime :: proc(n: u64, allocator := context.allocator) -> ([]u64, bool) {
+    // Dynamic array has negligible overhead in this case.
+    primes := make([dynamic]u64, 0, 8)
+    // Check all candidates from 2 to n
+    for c: u64 = 2; c <= n; c += 1 {
+        c_is_prime := true
+        // Modified is_prime() trial division; uses current list of primes as divisors
+        d_max := u64(math.sqrt(f64(c)))
+        for p in primes {
+            if p > d_max do break
+            if c % p == 0 {
+                c_is_prime = false
+                break
+            } 
+        }
+        if c_is_prime do append(&primes, c)
     }
     return primes[:], true
 }
