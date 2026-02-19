@@ -39,14 +39,11 @@ main :: proc() {
     // Array for storing primes
     primes: []u64
     defer delete(primes)
-    primebits: PrimeBits
-    defer delete(primebits.data)
 
     // Generate primes (with timer if profiling); exit on failure
     timer: time.Stopwatch
     if cfg.profiling do time.stopwatch_start(&timer)
     primes, ok = cfg.method.generate(cfg.n, context.allocator)
-    // primebits, ok = primes_tridiv_packed(cfg.n, context.allocator)
     if !ok do exit(1, "Failed to generate primes!")
     if cfg.profiling do time.stopwatch_stop(&timer)
     
