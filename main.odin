@@ -37,7 +37,9 @@ main :: proc() {
     defer mem.tracking_allocator_destroy(&mem_tracker)
 
     // Create a bit array for storing primes with plenty of room
-    pbits := create_pbits(int(bit_index_for(cfg.n)))
+    pbits: ^PrimalityBitArray
+    pbits, ok = create_pbits(int(bit_index_for(cfg.n)))
+    if !ok do exit(1, "Failed to create bit array!")
     defer destroy_pbits(pbits)
 
     // Generate primes (with timer if profiling); exit on failure
@@ -47,7 +49,6 @@ main :: proc() {
     if !ok do exit(1, "Failed to generate primes!")
     if cfg.profiling do time.stopwatch_stop(&timer)
     
-
     // Print profile results to console
     if cfg.profiling {
         // Get elapsed time in milliseconds

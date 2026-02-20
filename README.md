@@ -20,3 +20,19 @@ An exercise in optimizing prime-number generators to familiarize myself with Odi
     - `// *This comment is in italics* `
     - `// **This comment is in bold** `
     - ```// `This comment is in a single-line code block` ```
+
+#### 2026-02-20 - Explicit procedure overloading
+- Odin has explicit procedure overloading! core:math has:
+    ``` 
+    sqrt :: proc {
+        sqrt_f16,
+        sqrt_f32,
+        sqrt_f64,
+        . . .,
+    } 
+    . . . 
+    sqrt_f16 :: proc "contextless" (x: f16) -> f16 { return intrinsics.sqrt(x) }
+    sqrt_f32 :: proc "contextless" (x: f32) -> f32 { return intrinsics.sqrt(x) }
+    sqrt_f64 :: proc "contextless" (x: f64) -> f64 { return intrinsics.sqrt(x) }
+    ```
+    - sqrt() branches depending on the type of float you pass in
