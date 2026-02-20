@@ -1,5 +1,5 @@
+// system.odin - Operating system and command line interactions.
 package primes
-//system.odin - Operating system and command line interactions.
 
 import "core:fmt"
 import "core:os"
@@ -98,8 +98,8 @@ parse_clargs_config :: proc() -> (config: Config, ok: bool) {
     return config, true
 }
 
-// Writes a slice of integers to file, newline-separated
-write_primes_to_file :: proc(filename: string, primes: []u64) -> os.Error {
+// Writes numerical values for a bit array of primes to file, newline-separated
+write_primes_to_file :: proc(pbits: ^PrimalityBitArray, filename: string) -> os.Error {
     // Open and defer closing of file; return upon error
     file, err := os.open(filename, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0o644)
     if err != nil {
@@ -107,14 +107,22 @@ write_primes_to_file :: proc(filename: string, primes: []u64) -> os.Error {
         return err
     }
     defer os.close(file)
-    
-    // Write slice values to file, newline-separated; return upon interruption
-    for p in primes {
+
+    piter: PrimalityIterator = make_piterator(pbits)
+    p: u64 = 2
+    ok: bool = true
+    // Iterate through the entire PrimalityBitsArray
+    for {
+        // Print the numerical value of each prime to file, starting with 2
         bytes_printed := fmt.fprintfln(file, "%d", p)
         if bytes_printed <= 0 {
             fmt.eprintfln("Write failed on prime %d", p)
             return os.ERROR_OPERATION_ABORTED
-        } 
+        }
+        // Get next prime
+        p, ok = next_set_candidate(&piter)
+        // `ok` will be false when end of bit array is reached
+        if !ok do break
     }
     
     return nil

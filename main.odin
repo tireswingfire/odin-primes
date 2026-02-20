@@ -5,6 +5,7 @@ import "core:fmt"
 import "core:os"
 import "core:mem"
 import "core:time"
+import "core:log"
 
 Config :: struct {
     n:         u64,
@@ -36,17 +37,18 @@ main :: proc() {
     context.allocator = mem.tracking_allocator(&mem_tracker)
     defer mem.tracking_allocator_destroy(&mem_tracker)
 
-    // Array for storing primes
-    primes: []u64
-    defer delete(primes)
+    // Create a bit array for storing primes with plenty of room
+    pbits := create_pbits(int(bit_index_for(cfg.n)))
+    defer destroy_pbits(pbits)
 
     // Generate primes (with timer if profiling); exit on failure
     timer: time.Stopwatch
     if cfg.profiling do time.stopwatch_start(&timer)
-    primes, ok = cfg.method.generate(cfg.n, context.allocator)
+    ok = cfg.method.generate(pbits, cfg.n, context.allocator)
     if !ok do exit(1, "Failed to generate primes!")
     if cfg.profiling do time.stopwatch_stop(&timer)
     
+
     // Print profile results to console
     if cfg.profiling {
         // Get elapsed time in milliseconds
@@ -55,14 +57,14 @@ main :: proc() {
         fmt.printfln("Profile:  %s  =====", cfg.method.name)
         fmt.printfln("Time:     %.3f ms", elapsed_ms)
         fmt.printfln("Maximum:  %d", cfg.n)
-        fmt.printfln("Primes:   %d", len(primes))
+        fmt.printfln("Primes:   %d", count_set_bits(pbits) + 1)
         fmt.printfln("Memory allocation  =====")
         fmt.printfln("Peak:     %.3f kiB", f32(mem_tracker.peak_memory_allocated) / 1000)
         fmt.printfln("Total:    %.3f kiB", f32(mem_tracker.total_memory_allocated) / 1000)
     }
     
     // Write primes to file; newline-separated 
-    err := write_primes_to_file(cfg.output, primes)
+    err := write_primes_to_file(pbits, cfg.output)
     if err != nil do exit(1, "Failed to write primes to file!")
 }
 
