@@ -5,7 +5,6 @@ import "core:fmt"
 import "core:os"
 import "core:mem"
 import "core:time"
-import "core:log"
 
 Config :: struct {
     n:         u64,
