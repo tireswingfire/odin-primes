@@ -42,11 +42,18 @@ init_pbits :: proc(pbits: ^PrimalityBitArray, max_index: int, min_index: int = 0
     return ba.init(cast(^ba.Bit_Array)pbits, max_index, min_index, allocator)
 }
 
-// Sets all values in a PrimalityBitArray to zero
+// Sets all values in a PrimalityBitArray to `0 == false` by default,
+// can also set them all to `1 == true` if specified
 // 
 // *Wrapper for `bit_array.clear`*
-clear_pbits :: proc(pbits: ^PrimalityBitArray) {
-    ba.clear(cast(^ba.Bit_Array)pbits)
+clear_pbits :: proc(pbits: ^PrimalityBitArray, clear_to: bool = false) {
+    if !clear_to do ba.clear(cast(^ba.Bit_Array)pbits)
+    else {
+        for i in 0..=pbits.length {
+            ok := set_pbit(pbits, i)
+            if !ok do return
+        }
+    }
 }
 
 // Shrinks a PrimalityBitArray's backing storage to the smallest possible size

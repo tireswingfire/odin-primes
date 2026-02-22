@@ -37,6 +37,11 @@ An exercise in writing and optimizing prime number generators to familiarize mys
     ```
     - sqrt() branches depending on the type of float you pass in
 
+#### 2026-02-21 - Wheel factorization
+- Had an idea: Generalize the concept of an odd-numbers-only (not divisible by 2) bit array; What if we tracked only numbers that weren't divisible by the first few primes?
+    - Turns out, that's a thing. It's called wheel factorization.
+    - Will attempt to implement a wheel-based bit array as a more flexible (and potentially faster / more memory efficient) generalization of my PrimalityBitArray
+
 ## Profiling example 2026-02-20
 ```
 .\odin-primes.exe -m pbits -n 10_000_000 -p

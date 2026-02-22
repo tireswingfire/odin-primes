@@ -15,7 +15,7 @@ print_help_message :: proc() {
     for m in METHODS do fmt.printfln("\t\t%s \t| %s", m.name, m.description)
     fmt.printfln(" ")
     fmt.printfln("\t-p --profile (default:%v)      \t| Track time elapsed and memory usage", default_cfg.profiling)
-    fmt.printfln("\t-o --output <path> (default:%v)\t| Output file to export to", default_cfg.output)
+    fmt.printfln("\t-o --output <path> (default:%v)\t| Output to file at path", default_cfg.output)
     fmt.printfln("\t-h --help | Show this help message")
 }
 
@@ -49,7 +49,7 @@ parse_clargs_config :: proc() -> (config: Config, ok: bool) {
         case "-h", "--help":
             print_help_message()
             config.help = true
-            return config, true // Return early
+            return config, true  // Return early
 
         // Profiling argument
         case "-p", "--profile":
@@ -57,37 +57,38 @@ parse_clargs_config :: proc() -> (config: Config, ok: bool) {
 
         // Upper limit argument
         case "-n", "--max":
-            value := get_value_for(i) or_return // Get next arg if it exists
-            n, ok := strconv.parse_u64(value) // Parse next arg
-            if !ok { // Next arg must be integer
+            value := get_value_for(i) or_return  // Get next arg if it exists
+            n, ok := strconv.parse_u64(value)  // Parse next arg
+            if !ok {  // Next arg must be integer
                 invalid(fmt.tprintf("Invalid integer for -n / --max: %q", value))
                 return {}, false
             }
             config.n = n
-            i += 1 // Consume value and flag
+            i += 1  // Consume value and flag
 
         // Method selection argument
         case "-m", "--method":
-            value := get_value_for(i) or_return // Get next arg if it exists
+            value := get_value_for(i) or_return  // Get next arg if it exists
             found := false
-            for m in METHODS { // Search and match next arg in METHODS, case insensitive
+            for m in METHODS {  // Search and match next arg in METHODS, case insensitive
                 if strings.equal_fold(value, m.name) {
                     config.method = m
                     found = true
                     break
                 }
             }
-            if !found { // Next arg must be a valid method name
+            if !found {  // Next arg must be a valid method name
                 invalid(fmt.tprintf("Invalid method name for -m / --method: %q", value))
                 return {}, false
             }
-            i += 1 // Consume value and flag
+            i += 1  // Consume value and flag
 
         // Output file path argument
         case "-o", "--output":
-            value := get_value_for(i) or_return // Get next arg if it exists
-            config.output = value // Next arg is taken at face value
-            i += 1 // Consume value and flag
+            value := get_value_for(i) or_return  // Get next arg if it exists
+            config.output = value  // Next arg is taken at face value
+            config.do_output = true
+            i += 1  // Consume value and flag
 
         // Default case; unknown argument
         case:

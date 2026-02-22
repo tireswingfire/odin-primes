@@ -11,6 +11,7 @@ Config :: struct {
     method:    Method,
     profiling: bool,
     output:    string,
+    do_output: bool,
     help:      bool,
 }
 
@@ -19,6 +20,7 @@ default_cfg: Config: {
     method = METHODS[0],
     profiling = false,
     output = "primes.txt",
+    do_output = false,
     help = false,
 }
 
@@ -42,12 +44,16 @@ main :: proc() {
     if !ok do exit(1, "Failed to create bit array!")
     defer destroy_pbits(pbits)
 
+    // ============================================================
+
     // Generate primes (with timer if profiling); exit on failure
     timer: time.Stopwatch
     if cfg.profiling do time.stopwatch_start(&timer)
     ok = cfg.method.generate(pbits, cfg.n, context.allocator)
     if !ok do exit(1, "Failed to generate primes!")
     if cfg.profiling do time.stopwatch_stop(&timer)
+
+    // ============================================================
     
     // Print profile results to console
     if cfg.profiling {
@@ -64,8 +70,10 @@ main :: proc() {
     }
     
     // Write primes to file; newline-separated 
-    err := write_primes_to_file(pbits, cfg.output)
-    if err != nil do exit(1, "Failed to write primes to file!")
+    if cfg.do_output {
+        err := write_primes_to_file(pbits, cfg.output)
+        if err != nil do exit(1, "Failed to write primes to file!")
+    }
 }
 
 // Exit procedure

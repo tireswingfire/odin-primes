@@ -2,6 +2,7 @@
 package primes
 
 import "core:math"
+import "core:fmt"
 
 // Pairs a procedure with a name and a description
 Method :: struct {
@@ -29,8 +30,12 @@ METHODS :: []Method {
     primes_tridiv_odds},
 
     {"PBits",
-    "Trial division v4: Like v3, but operates directly within a primality bit array for reduced memory usage",
+    "Trial division v4: Like v3, but operates directly within a primality bit array for reduced memory usage.",
     primes_tridiv_pbits},
+
+    {"Eratos",
+    "Sieve of Eratosthenes: The original sieve; Iteratively mark as composite the multiples of each prime.",
+    primes_sieve_eratos},
 }
 
 // Dummy method, returns an empty bit array
@@ -55,6 +60,8 @@ primes_tridiv_naive :: proc(pbits: ^PrimalityBitArray, n: u64, allocator := cont
         return true
     }
 
+    // Clear the bit array to 0
+    clear_pbits(pbits)
     // Dynamic array has negligible overhead in this case.
     list := make([dynamic]u64, 0, 8)
     // Check all candidates from 2 to n
@@ -70,6 +77,8 @@ primes_tridiv_naive :: proc(pbits: ^PrimalityBitArray, n: u64, allocator := cont
 // 
 // For each candidate `c` from 2 to `n`, performs a modulus check on all PRIME divisors `d` between 2 and `sqrt(c)` **
 primes_tridiv_prime :: proc(pbits: ^PrimalityBitArray, n: u64, allocator := context.allocator) -> (ok: bool) {
+    // Clear the bit array to 0
+    clear_pbits(pbits)
     // Dynamic array has negligible overhead in this case.
     list := make([dynamic]u64, 0, 8)
     // Check all candidates from 2 to n
@@ -96,6 +105,8 @@ primes_tridiv_prime :: proc(pbits: ^PrimalityBitArray, n: u64, allocator := cont
 // 
 // For each odd candidate c from 3 to `n`, performs a modulus check on all PRIME divisors between 3 and `sqrt(c)`
 primes_tridiv_odds :: proc(pbits: ^PrimalityBitArray, n: u64, allocator := context.allocator) -> (ok: bool) {
+    // Clear the bit array to 0
+    clear_pbits(pbits)
     // Dynamic array has negligible overhead in this case.
     list := make([dynamic]u64, 0, 8)
     // Start with 2 explicitly, all others will be odd
@@ -124,6 +135,8 @@ primes_tridiv_odds :: proc(pbits: ^PrimalityBitArray, n: u64, allocator := conte
 // 
 // For each odd candidate `c` from 3 to `n`, performs a modulus check on all PRIME divisors between 2 and `sqrt(c)`
 primes_tridiv_pbits :: proc(pbits: ^PrimalityBitArray, n: u64, allocator := context.allocator) -> (ok: bool) {
+    // Clear the bit array to 0
+    clear_pbits(pbits)
     // No more dynamic array **
     // Check all odd candidates from 3 to n
     for c: u64 = 3; c <= n; c += 2 {
@@ -145,6 +158,35 @@ primes_tridiv_pbits :: proc(pbits: ^PrimalityBitArray, n: u64, allocator := cont
         // Set bit for a prime candidate directly **
         if c_is_prime do ok = set_pbit_for(pbits, c)
         if !ok do return false
+    }
+    return true
+}
+
+// Sieve of Eratosthenes
+primes_sieve_eratos :: proc(pbits: ^PrimalityBitArray, n: u64, allocator := context.allocator) -> (ok: bool) {
+    // Clear the bit array to all 1 instead of all 0
+    clear_pbits(pbits, true)
+    // Iterator for PrimalityBitArray 
+    piter := make_piterator(pbits)
+
+    // Only use primes up to sqrt(n)
+    p_max := u64(math.sqrt(f64(n)))
+    p: u64
+    // To increment candidate by 2p, skipping even numbers
+    c_step := 2 * p
+
+    // For each prime, mark all multiples composite
+    for {
+        // Get next prime in the bit array until sqrt(n) or end of array
+        p, ok = next_set_candidate(&piter)
+        if !ok || p > p_max do break
+        
+        // Mark all multiples of p composite
+        c_step = 2 * p
+        for c: u64 = p * p; c <= n; c += c_step {
+            ok = unset_pbit_for(pbits, c)
+            if !ok do return false
+        }
     }
     return true
 }
