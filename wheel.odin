@@ -21,7 +21,7 @@ Wheel :: struct {
 //
 // The wheel will contain the first n primes, their product, and the first period of their residuals.
 create_wheel :: proc(n: u64, allocator := context.allocator) -> (w: ^Wheel, ok: bool) #optional_ok {
-    // Enforce a practical limit on n; must be <= 9 or theoretically at least <= 15
+    // Enforce a practical limit on n; should be <= 9 and must be <= 15
     // For n > 9, the array of residuals grows beyond 125 million entries or ~1GiB
     // For n > 15, the product of the first n primes grows beyond the u64 limit.
     if n > 9 do return nil, false
@@ -106,7 +106,7 @@ wheel_residual_at :: proc(w: ^Wheel, index: u64) -> (res: u64) {
 
 // Gets the non-periodic index for an integer on a given wheel
 wheel_index_for :: proc(w: ^Wheel, integer: u64) -> (index: u64) {
-    if integer == 0 do return 0
+    if integer <= 1 do return 1  // Minimum index 1
 
     // Start with the correct period offset
     index = (integer / w.product) * w.res_count
@@ -117,6 +117,8 @@ wheel_index_for :: proc(w: ^Wheel, integer: u64) -> (index: u64) {
         if res > remainder do break
         index += 1
     }
-    
-    return index - 1  // Round down
+    index -= 1  // Round down
+
+    if index == 0 do return 1  // Minimum index 1
+    return index
 }

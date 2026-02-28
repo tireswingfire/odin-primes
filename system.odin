@@ -121,21 +121,28 @@ write_primes_to_file :: proc(pbits: ^PrimalityBitArray, filename: string) -> os.
     }
     defer os.close(file)
 
-    // Iterate through the entire PrimalityBitsArray
-    piter: PrimalityIterator = make_piterator(pbits)
-    p: u64 = 2
-    ok: bool = true
-    for {
-        // Print the numerical value of each prime to file, starting with 2
-        bytes_printed := fmt.fprintfln(file, "%d", p)
+    // First, write the moduli of the wheel; these are the first few primes
+    for m in pbits.wheel.moduli {
+        bytes_printed := fmt.fprintfln(file, "%d", m)
         if bytes_printed <= 0 {
-            fmt.eprintfln("Write failed on prime %d", p)
+            fmt.eprintfln("Write failed at %d", m)
             return os.ERROR_OPERATION_ABORTED
         }
+    }
 
+    // Iterate through the entire PrimalityBitsArray and write the prime candidates
+    piter: PrimalityIterator = make_piterator(pbits)
+    for {
         // Get next prime
-        p, ok = next_set_candidate(pbits, &piter)
+        p, ok := next_set_candidate(pbits, &piter)
         if !ok do break  // `ok` will go false when end of bit array is reached
+
+        // Write the numerical value of each prime candidate to file
+        bytes_printed := fmt.fprintfln(file, "%d", p)
+        if bytes_printed <= 0 {
+            fmt.eprintfln("Write failed at %d", p)
+            return os.ERROR_OPERATION_ABORTED
+        }
     }
 
     return nil

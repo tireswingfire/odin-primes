@@ -61,10 +61,11 @@ main :: proc() {
     if cfg.profiling {
         // Get elapsed time in milliseconds
         elapsed_ms := f64(time.duration_milliseconds(time.stopwatch_duration(timer)))
+        prime_count := count_set_bits(pbits) + u64(len(pbits.wheel.moduli))
 
         fmt.printfln("\nProfile: %s\t==========", cfg.method.name)
         fmt.printfln("  Time:      %.3f ms", elapsed_ms)
-        fmt.printfln("  Primes:    %d", count_set_bits(pbits) + 1)
+        fmt.printfln("  Primes:    %d", prime_count)
         fmt.printfln("  Maximum:   %d", cfg.n)
         fmt.printfln("  Wheel lvl: %d", cfg.wheel_lvl)
         fmt.printfln("Memory Allocation  =======")

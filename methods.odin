@@ -131,33 +131,32 @@ primes_tridiv_odds :: proc(pbits: ^PrimalityBitArray, n: u64, allocator := conte
 }
 
 // Modified prime trial division method, generates primes up to max value n.
-// Works directly inside a PrimalityBitArray instead of a [dynamic]u64 **
+//
+// Works directly inside a PrimalityBitArray instead of a [dynamic]u64;
+// Checks only residual candidates. **
 // 
-// For each odd candidate `c` from 3 to `n`, performs a modulus check on all PRIME divisors between 2 and `sqrt(c)`
+// For each residual candidate `c` up to `n`, performs a modulus check on all PRIME divisors between 2 and `sqrt(c)`
 primes_tridiv_pbits :: proc(pbits: ^PrimalityBitArray, n: u64, allocator := context.allocator) -> (ok: bool) {
-    // Clear the bit array to 0
-    clear_pbits(pbits)
+    // Clear the bit array to all `1 == true`
+    clear_pbits(pbits, true)
     // No more dynamic array **
-    // Check all odd candidates from 3 to n
-    for c: u64 = 3; c <= n; c += 2 {
-        // Modified is_prime() trial division; uses current list of primes as divisors
-        c_is_prime := true
-        d: u64
+    // Outer iteration loop; Check all residual candidates up to n **
+    c_piter := make_piterator(pbits)
+    for {
+        c, _, c_ok := next_candidate(pbits, &c_piter)
+        if !c_ok do break  // c_ok will go false when the end of the array is reached
+        // Inner iteration loop; check all prime divisors up to sqrt(c) **
         d_max := u64(math.sqrt(f64(c)))
-        // Iterator for PrimalityBitArray **
-        piter := make_piterator(pbits)
+        d_piter := make_piterator(pbits)
         for {
             // Get next prime divisor from bit array **
-            d, ok = next_set_candidate(pbits, &piter)
-            if !ok || d > d_max do break
+            d, d_ok := next_set_candidate(pbits, &d_piter)
+            if !d_ok || d > d_max do break
             if c % d == 0 {
-                c_is_prime = false
+                unset_pbit_for(pbits, c)  // Mark candidate as not prime
                 break
-            } 
+            }
         }
-        // Set bit for a prime candidate directly **
-        if c_is_prime do ok = set_pbit_for(pbits, c)
-        if !ok do return false
     }
     return true
 }
