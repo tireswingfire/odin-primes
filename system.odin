@@ -10,7 +10,7 @@ import "core:strings"
 print_help_message :: proc() {
     fmt.printfln("\nUsage:")
     fmt.printfln("\t-n --max <int> (default:%v)       \t| Generate primes up to this limit", default_cfg.n)
-    fmt.printfln("\t-w --wheel <int 0-15> (default:%v)\t| First-n-primes wheel for bit array indexing", default_cfg.wheel_lvl)
+    fmt.printfln("\t-w --wheel <int 0-9> (default:%v) \t| First-n-primes wheel for bit array indexing", default_cfg.wheel_lvl)
     fmt.printfln("\t-m --method <name> (default:%v)   \t| Method/algorithm to use", default_cfg.method.name)
     fmt.printfln("\t\tMethods:")
     for m in METHODS do fmt.printfln("\t\t%s \t| %s", m.name, m.description)
@@ -88,8 +88,8 @@ parse_clargs_config :: proc() -> (config: Config, ok: bool) {
         case "-w", "--wheel":
             value := get_value_for(i) or_return  // Get next arg if it exists
             lvl, ok := strconv.parse_u64(value)    // Parse next arg
-            if !ok || lvl > 15 {                   // Next arg must be integer <= 15
-                invalid(fmt.tprintf("Invalid integer for -w / --wheel: %q; Must be an integer <= 15", value))
+            if !ok || lvl > 9 {                    // Next arg must be an integer from 0 to 9
+                invalid(fmt.tprintf("Invalid integer for -w / --wheel: %q; Must be an integer from 0 to 9", value))
                 return {}, false
             }
             config.wheel_lvl = lvl

@@ -21,21 +21,10 @@ Wheel :: struct {
 //
 // The wheel will contain the first n primes, their product, and the first period of their residuals.
 create_wheel :: proc(n: u64, allocator := context.allocator) -> (w: ^Wheel, ok: bool) #optional_ok {
-    // Enforce a limit on n; must be <= 15
+    // Enforce a practical limit on n; must be <= 9 or theoretically at least <= 15
+    // For n > 9, the array of residuals grows beyond 125 million entries or ~1GiB
     // For n > 15, the product of the first n primes grows beyond the u64 limit.
-    //
-    // n    product
-    // 0	1
-    // 1	2
-    // 2	6
-    // 3	30
-    // 4    210
-    // 5    2310
-    // ...
-    // 15	614889782588491410
-    // u64  18446744073709551615 max
-    // 16	32589158477190044730 (above u64 limit)
-    if n > 15 do return nil, false
+    if n > 9 do return nil, false
     
     // Allocate on heap
     w = new(Wheel)
@@ -47,13 +36,6 @@ create_wheel :: proc(n: u64, allocator := context.allocator) -> (w: ^Wheel, ok: 
     // Make dynamic arrays
     w.moduli = make([dynamic]u64, 0)
     w.residuals = make([dynamic]u64, 0)
-
-    // Explicit wheel 0
-    if n == 0 {
-        w.product = 0
-        append(&w.residuals, 2)
-        return w, true
-    }
 
     // Generate moduli - first n prime numbers;
     // Slightly modified primes_tridiv_odds method;
@@ -71,20 +53,20 @@ create_wheel :: proc(n: u64, allocator := context.allocator) -> (w: ^Wheel, ok: 
         if c_is_prime do append(&w.moduli, c)
     }
     
-    // Calculate the product of all moduli
+    // Calculate the product of all moduli and 1
     w.product = 1
     for m in w.moduli do w.product *= m
 
     // Generate residuals - the first period of all integers coprime with the product.
     //
-    // for n=0. product=1  and moduli={},        residuals will be {}.
+    // for n=0. product=1  and moduli={},        residuals will be {1}.
     // for n=1, product=2  and moduli={2},       residuals will be {1}.
     // for n=2, product=6  and moduli={2, 3},    residuals will be {1, 5}.
     // for n=3, product=30 and moduli={2, 3, 5}, residuals will be {1, 7, 11, 13, 17, 19, 23, 29}.
     //
     // Such that k will be the i'th number not divisible by any moduli (coprime with the product);
     // k = residuals[i % len(residuals)] + floor(i / len(residuals)) * product
-    for c: u64 = 1; c < w.product ; c += 2 {
+    for c: u64 = 1; c <= w.product ; c += 2 {
         c_is_res := true
         for m in w.moduli {
             if c % m == 0 {
