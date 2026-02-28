@@ -8,6 +8,7 @@ import "core:time"
 
 Config :: struct {
     n:         u64,
+    wheel_lvl: u64,
     method:    Method,
     profiling: bool,
     output:    string,
@@ -17,6 +18,7 @@ Config :: struct {
 
 default_cfg: Config: {
     n = 100,
+    wheel_lvl = 1,
     method = METHODS[0],
     profiling = false,
     output = "primes.txt",
@@ -40,7 +42,7 @@ main :: proc() {
 
     // Create a bit array for storing primes with plenty of room
     pbits: ^PrimalityBitArray
-    pbits, ok = create_pbits(int(bit_index_for(cfg.n)))
+    pbits, ok = create_pbits(cfg.wheel_lvl, cfg.n)
     if !ok do exit(1, "Failed to create bit array!")
     defer destroy_pbits(pbits)
 
@@ -60,17 +62,19 @@ main :: proc() {
         // Get elapsed time in milliseconds
         elapsed_ms := f64(time.duration_milliseconds(time.stopwatch_duration(timer)))
 
-        fmt.printfln("Profile:  %s  =====", cfg.method.name)
-        fmt.printfln("Time:     %.3f ms", elapsed_ms)
-        fmt.printfln("Maximum:  %d", cfg.n)
-        fmt.printfln("Primes:   %d", count_set_bits(pbits) + 1)
-        fmt.printfln("Memory allocation  =====")
-        fmt.printfln("Peak:     %.3f kiB", f32(mem_tracker.peak_memory_allocated) / 1000)
-        fmt.printfln("Total:    %.3f kiB", f32(mem_tracker.total_memory_allocated) / 1000)
+        fmt.printfln("\nProfile: %s\t==========", cfg.method.name)
+        fmt.printfln("  Time:      %.3f ms", elapsed_ms)
+        fmt.printfln("  Primes:    %d", count_set_bits(pbits) + 1)
+        fmt.printfln("  Maximum:   %d", cfg.n)
+        fmt.printfln("  Wheel lvl: %d", cfg.wheel_lvl)
+        fmt.printfln("Memory Allocation  =======")
+        fmt.printfln("  Peak:      %.3f kiB", f32(mem_tracker.peak_memory_allocated) / 1000)
+        fmt.printfln("  Total:     %.3f kiB", f32(mem_tracker.total_memory_allocated) / 1000)
     }
     
     // Write primes to file; newline-separated 
     if cfg.do_output {
+        fmt.println("\nWriting to file", cfg.output, "...\n")
         err := write_primes_to_file(pbits, cfg.output)
         if err != nil do exit(1, "Failed to write primes to file!")
     }

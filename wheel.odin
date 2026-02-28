@@ -1,30 +1,25 @@
 // wheel.odin - EXPERIMENTAL
 package primes
 
-// A wheel describes a set of integers (residuals) not divisible by any in another set (moduli).
+import "core:fmt"
+
+// A wheel describes a set of integers (residuals) not divisible by any of the first n primes (moduli).
 //
 // The intervals between residuals are periodic by the `product` (product of all moduli),
-// so only the values for the first period is stored.
-// Subsequent periods can be obtained by adding multiples of `product`
+// so only the values for the first period are stored.
+// Subsequent periods can be obtained by adding multiples of the `product`
 Wheel :: struct {
+    level: u64,
     moduli: [dynamic]u64,
     product: u64,
     residuals: [dynamic]u64,
+    res_count: u64,
     free_pointer: bool,
-}
-
-// Destroys a wheel; deallocates the dynamic arrays and frees the struct if it is on the heap
-destroy_wheel :: proc(w: ^Wheel, allocator := context.allocator) {
-    if w == nil do return
-    delete(w.moduli)
-    delete(w.residuals)
-    // Only free if the wheel was created using `create_wheel` and is not on the stack.
-    if w.free_pointer do free(w)
 }
 
 // Creates a wheel for a given value n.
 //
-// The wheel will contain the first n primes, their product, and their non-periodic residuals.
+// The wheel will contain the first n primes, their product, and the first period of their residuals.
 create_wheel :: proc(n: u64, allocator := context.allocator) -> (w: ^Wheel, ok: bool) #optional_ok {
     // Enforce a limit on n; must be <= 15
     // For n > 15, the product of the first n primes grows beyond the u64 limit.
@@ -45,6 +40,9 @@ create_wheel :: proc(n: u64, allocator := context.allocator) -> (w: ^Wheel, ok: 
     // Allocate on heap
     w = new(Wheel)
     w.free_pointer = true
+
+    // Keep track of n
+    w.level = n
 
     // Make dynamic arrays
     w.moduli = make([dynamic]u64, 0)
@@ -79,13 +77,14 @@ create_wheel :: proc(n: u64, allocator := context.allocator) -> (w: ^Wheel, ok: 
 
     // Generate residuals - the first period of all integers coprime with the product.
     //
-    // for n=1, product=2  and moduli={2},       residuals will be {3}.
-    // for n=2, product=6  and moduli={2, 3},    residuals will be {5, 7}.
-    // for n=3, product=30 and moduli={2, 3, 5}, residuals will be {7, 11, 13, 17, 19, 23, 29, 31}.
+    // for n=0. product=1  and moduli={},        residuals will be {}.
+    // for n=1, product=2  and moduli={2},       residuals will be {1}.
+    // for n=2, product=6  and moduli={2, 3},    residuals will be {1, 5}.
+    // for n=3, product=30 and moduli={2, 3, 5}, residuals will be {1, 7, 11, 13, 17, 19, 23, 29}.
     //
     // Such that k will be the i'th number not divisible by any moduli (coprime with the product);
-    // k = residuals[i % p] + floor(i / p) * p; where p is the product.
-    for c: u64 = 3; c < w.product + 2 ; c += 2 {
+    // k = residuals[i % len(residuals)] + floor(i / len(residuals)) * product
+    for c: u64 = 1; c < w.product ; c += 2 {
         c_is_res := true
         for m in w.moduli {
             if c % m == 0 {
@@ -96,5 +95,46 @@ create_wheel :: proc(n: u64, allocator := context.allocator) -> (w: ^Wheel, ok: 
         if c_is_res do append(&w.residuals, c)
     }
 
+    // Count the number of residuals once for future repeated use
+    w.res_count = u64(len(w.residuals))
+
     return w, true
+}
+
+// Destroys a wheel.
+//
+// *Deallocates `moduli` and `residuals`; frees the struct if it is on the heap.*
+destroy_wheel :: proc(w: ^Wheel, allocator := context.allocator) {
+    if w == nil do return
+    delete(w.moduli)
+    delete(w.residuals)
+    // Only free if the wheel was created using `create_wheel` and is not on the stack.
+    if w.free_pointer do free(w)
+}
+
+
+
+// Gets k, the i'th residual.
+//
+// Residuals are periodic by the `product`, so only the first period of `residuals` are stored.
+// Subsequent periods can be obtained by adding integer multiples of the `product`.
+wheel_residual_at :: proc(w: ^Wheel, index: u64) -> (res: u64) {
+    return w.residuals[index % w.res_count] + (index / w.res_count) * w.product
+}
+
+// Gets the non-periodic index for an integer on a given wheel
+wheel_index_for :: proc(w: ^Wheel, integer: u64) -> (index: u64) {
+    if integer == 0 do return 0
+
+    // Start with the correct period offset
+    index = (integer / w.product) * w.res_count
+
+    // Then round down to the nearest residual in that period
+    remainder := integer % w.product
+    for res in w.residuals {
+        if res > remainder do break
+        index += 1
+    }
+    
+    return index - 1  // Round down
 }

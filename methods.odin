@@ -148,7 +148,7 @@ primes_tridiv_pbits :: proc(pbits: ^PrimalityBitArray, n: u64, allocator := cont
         piter := make_piterator(pbits)
         for {
             // Get next prime divisor from bit array **
-            d, ok = next_set_candidate(&piter)
+            d, ok = next_set_candidate(pbits, &piter)
             if !ok || d > d_max do break
             if c % d == 0 {
                 c_is_prime = false
@@ -178,7 +178,7 @@ primes_sieve_eratos :: proc(pbits: ^PrimalityBitArray, n: u64, allocator := cont
     // For each prime, mark all multiples composite
     for {
         // Get next prime in the bit array until sqrt(n) or end of array
-        p, ok = next_set_candidate(&piter)
+        p, ok = next_set_candidate(pbits, &piter)
         if !ok || p > p_max do break
         
         // Mark all multiples of p composite

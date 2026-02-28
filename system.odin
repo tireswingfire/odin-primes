@@ -8,15 +8,16 @@ import "core:strings"
 
 // Help message to print when -h or --help argument is passed
 print_help_message :: proc() {
-    fmt.printfln("Usage:")
-    fmt.printfln("\t-n --max <int> (default:%v)    \t| Generate primes up to this limit", default_cfg.n)
-    fmt.printfln("\t-m --method <name> (default:%v)\t| Method/algorithm to use", default_cfg.method.name)
+    fmt.printfln("\nUsage:")
+    fmt.printfln("\t-n --max <int> (default:%v)       \t| Generate primes up to this limit", default_cfg.n)
+    fmt.printfln("\t-w --wheel <int 0-15> (default:%v)\t| First-n-primes wheel for bit array indexing", default_cfg.wheel_lvl)
+    fmt.printfln("\t-m --method <name> (default:%v)   \t| Method/algorithm to use", default_cfg.method.name)
     fmt.printfln("\t\tMethods:")
     for m in METHODS do fmt.printfln("\t\t%s \t| %s", m.name, m.description)
     fmt.printfln(" ")
     fmt.printfln("\t-p --profile (default:%v)      \t| Track time elapsed and memory usage", default_cfg.profiling)
     fmt.printfln("\t-o --output <path> (default:%v)\t| Output to file at path", default_cfg.output)
-    fmt.printfln("\t-h --help | Show this help message")
+    fmt.printfln("\t-h --help                    \t\t| Show this help message\n")
 }
 
 // Parses command line arguments and populates a configuration struct accordingly
@@ -58,8 +59,8 @@ parse_clargs_config :: proc() -> (config: Config, ok: bool) {
         // Upper limit argument
         case "-n", "--max":
             value := get_value_for(i) or_return  // Get next arg if it exists
-            n, ok := strconv.parse_u64(value)  // Parse next arg
-            if !ok {  // Next arg must be integer
+            n, ok := strconv.parse_u64(value)    // Parse next arg
+            if !ok {                             // Next arg must be integer
                 invalid(fmt.tprintf("Invalid integer for -n / --max: %q", value))
                 return {}, false
             }
@@ -81,6 +82,17 @@ parse_clargs_config :: proc() -> (config: Config, ok: bool) {
                 invalid(fmt.tprintf("Invalid method name for -m / --method: %q", value))
                 return {}, false
             }
+            i += 1  // Consume value and flag
+
+        // Wheel level argument
+        case "-w", "--wheel":
+            value := get_value_for(i) or_return  // Get next arg if it exists
+            lvl, ok := strconv.parse_u64(value)    // Parse next arg
+            if !ok || lvl > 15 {                   // Next arg must be integer <= 15
+                invalid(fmt.tprintf("Invalid integer for -w / --wheel: %q; Must be an integer <= 15", value))
+                return {}, false
+            }
+            config.wheel_lvl = lvl
             i += 1  // Consume value and flag
 
         // Output file path argument
@@ -109,10 +121,10 @@ write_primes_to_file :: proc(pbits: ^PrimalityBitArray, filename: string) -> os.
     }
     defer os.close(file)
 
+    // Iterate through the entire PrimalityBitsArray
     piter: PrimalityIterator = make_piterator(pbits)
     p: u64 = 2
     ok: bool = true
-    // Iterate through the entire PrimalityBitsArray
     for {
         // Print the numerical value of each prime to file, starting with 2
         bytes_printed := fmt.fprintfln(file, "%d", p)
@@ -120,11 +132,11 @@ write_primes_to_file :: proc(pbits: ^PrimalityBitArray, filename: string) -> os.
             fmt.eprintfln("Write failed on prime %d", p)
             return os.ERROR_OPERATION_ABORTED
         }
+
         // Get next prime
-        p, ok = next_set_candidate(&piter)
-        // `ok` will be false when end of bit array is reached
-        if !ok do break
+        p, ok = next_set_candidate(pbits, &piter)
+        if !ok do break  // `ok` will go false when end of bit array is reached
     }
-    
+
     return nil
 }
