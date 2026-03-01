@@ -34,20 +34,8 @@ create_pbits :: proc(wheel_lvl: u64, c_max: u64, allocator := context.allocator)
 
     // Create bit array; return on failure
     i_max := wheel_index_for(pbits.wheel, c_max)
-    when ODIN_DEBUG {
-        fmt.eprintln("\ncreate_pbits: Creating PrimalityBitArray...")
-        fmt.eprintln(wheel_lvl, c_max, c_min, i_max)
-    }
-    pbits.arr, ok = ba.create(int(i_max), 1, allocator)
+    pbits.arr, ok = ba.create(int(i_max), 0, allocator)
     if !ok do return {}, false
-
-    // Debug build info
-    when ODIN_DEBUG {
-        fmt.eprintln("\ncreate_pbits: Created PrimalityBitArray:")
-        fmt.eprintln(pbits)
-        fmt.eprintln(pbits.arr^)
-        fmt.eprintln(pbits.wheel^)
-    }
 
     return pbits, true
 }
@@ -148,19 +136,20 @@ next_unset_candidate :: #force_inline proc(pbits: ^PrimalityBitArray, piter: ^Pr
 
 // Packs a slice of candidates into a PrimalityBitArray
 //
-// Iff a candidate is present in the slice, its bit will be set to `1 == true`
+// If a candidate is present in the slice, its bit will be set to `1 == true`
 pack_candidates :: proc(pbits: ^PrimalityBitArray, candidates: []u64, allocator := context.allocator) -> (ok: bool) {
-    // For each candidate present in the slice, set its bit to `1 == true`
-    for c in candidates { 
-        ok = set_pbit_for(pbits, c, true, allocator)
-        if !ok do return false
+    // Minimum candidate is the one at bit array index 1, all others are implicit
+    c_min := candidate_at(pbits, 1)
+    i := 0
+    for candidates[i] < c_min {
+        i += 1
     }
 
-    // Debug build info
-    when ODIN_DEBUG {
-        fmt.eprintln("\npack_candidates: Packed candidates.")
-        fmt.eprintln("Candidates:", candidates)
-        fmt.eprintln("Packed:", pbits.arr^)
+    // For each candidate present in the slice, set its bit to `1 == true`
+    for i < len(candidates) { 
+        ok = set_pbit_for(pbits, candidates[i], true, allocator)
+        if !ok do return false
+        i += 1
     }
     
     return true
@@ -177,19 +166,15 @@ unpack_candidates :: proc(pbits: ^PrimalityBitArray) -> (candidates: [dynamic]u6
     // Start with 2, all others are odd
     append(&candidates, 2)
 
+    // Skip index 0
+    piter.bit_idx += 1
+
     // Iterate through entire bit array and append all set candidates to dynamic array
     for {
         // Get next candidate whose bit is set to `1 == true`
         c, ok := next_set_candidate(pbits, &piter)  
         if !ok do break         // `ok` will go false at end of bit array
         append(&candidates, c)  // Append candidate to dynamic array
-    }
-
-    // Debug build info
-    when ODIN_DEBUG {
-        fmt.eprintln("\nunpack_candidates: Unpacked candidates.")
-        fmt.eprintln("Bit Array:", pbits.arr^)
-        fmt.eprintln("Unpacked:", candidates)
     }
 
     return candidates

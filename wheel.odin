@@ -104,21 +104,26 @@ wheel_residual_at :: proc(w: ^Wheel, index: u64) -> (res: u64) {
     return w.residuals[index % w.res_count] + (index / w.res_count) * w.product
 }
 
-// Gets the non-periodic index for an integer on a given wheel
+// Gets the non-periodic index for an integer on a given wheel.
 wheel_index_for :: proc(w: ^Wheel, integer: u64) -> (index: u64) {
-    if integer <= 1 do return 1  // Minimum index 1
+    // Prevent u64 underflow
+    if integer == 0 do return 0
 
-    // Start with the correct period offset
+    // Start with a period offset equal to some multiple of the product
     index = (integer / w.product) * w.res_count
 
-    // Then round down to the nearest residual in that period
+    // Round down to the nearest residual
     remainder := integer % w.product
-    for res in w.residuals {
-        if res > remainder do break
-        index += 1
+    for res, i in w.residuals {
+        if remainder < res {
+            index += u64(i - 1)
+            break
+        }
+        if remainder == res {
+            index += u64(i)
+            break
+        }
     }
-    index -= 1  // Round down
 
-    if index == 0 do return 1  // Minimum index 1
     return index
 }
