@@ -162,29 +162,35 @@ primes_tridiv_pbits :: proc(pbits: ^PrimalityBitArray, n: u64, allocator := cont
 }
 
 // Sieve of Eratosthenes
+//
+// Iteratively marks composite the multiples of each prime.
+// This is a slightly optimized version, only considering odd multiples.
 primes_sieve_eratos :: proc(pbits: ^PrimalityBitArray, n: u64, allocator := context.allocator) -> (ok: bool) {
-    // Clear the bit array to all 1 instead of all 0
-    clear_pbits(pbits, true)
-    // Iterator for PrimalityBitArray 
-    piter := make_piterator(pbits)
-
-    // Only use primes up to sqrt(n)
-    p_max := u64(math.sqrt(f64(n)))
-    p: u64
-    // To increment candidate by 2p, skipping even numbers
-    c_step := 2 * p
+    // Setup
+    clear_pbits(pbits, true)            // Clear the bit array to all 1 instead of all 0
+    p_piter := make_piterator(pbits)    // Iterator for PrimalityBitArray 
+    p_max := u64(math.sqrt(f64(n)))     // Only use primes up to sqrt(n)
 
     // For each prime, mark all multiples composite
     for {
-        // Get next prime in the bit array until sqrt(n) or end of array
-        p, ok = next_set_candidate(pbits, &piter)
-        if !ok || p > p_max do break
+        // Get next prime p in the bit array until sqrt(n) or end of array
+        p, p_ok := next_set_candidate(pbits, &p_piter)
+        if !p_ok || p > p_max do break
         
-        // Mark all multiples of p composite
-        c_step = 2 * p
-        for c: u64 = p * p; c <= n; c += c_step {
-            ok = unset_pbit_for(pbits, c)
-            if !ok do return false
+        // Multiplier m will be multiplied by p to get composite numbers
+        m_max := (n / p) + 1
+        m_piter := p_piter  // Start iterating m from where p is
+        m := p
+        for {
+            // Mark c = p * m as composite in the bit array
+            c := p * m
+            c_ok := unset_pbit_for(pbits, c)
+            if !c_ok do return false
+
+            // Get the next multiplier from the candidates in the bit array
+            m_ok: bool
+            m, _, m_ok = next_candidate(pbits, &m_piter)
+            if !m_ok || m > m_max do break
         }
     }
     return true
