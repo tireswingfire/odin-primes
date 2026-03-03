@@ -26,8 +26,8 @@ An exercise in writing and optimizing prime number generators to familiarize mys
     - Booleans are typically one byte wide, but can be packed into a bit array of 1-bit-wide booleans.
     - Bit arrays are comprised of "words", typically unsigned integer types 1 to 8 bytes wide that form the backing array in memory.
 - Wrappers
-    - Sometimes it is beneficial to "wrap" a gritty, detailed API into a simpler, more friendly "wrapper" API.
-
+    - Sometimes it is beneficial to "wrap" an API into a "wrapper" API, either to simplify it, add functionality, improve flexibility, or adapt it to your particular use case.
+    
 ## Odin-Specific Idiomatic Details Learned
 - Heap allocation
     - `new()` allocates for a single value of any type, returns a pointer.
