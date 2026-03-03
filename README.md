@@ -1,7 +1,50 @@
 # odin-primes
-An exercise in writing and optimizing prime number generators to familiarize myself with Odin.
+An exercise in writing and optimizing prime number generators to familiarize myself with Odin. Below is a report of what I have practiced and learned with this project so far.
 
-## What I have learned so far
+## Core Mathematical Concepts Explored
+#### Trial division
+#### Sieve of Eratosthenes
+#### Wheel factorization
+
+## Programming Techniques Practiced
+#### Command-line argument parsing (manual)
+- More flexible than Odin's built-in tag-based automatic parsing, but more fragile.
+#### Basic procedure profiling
+- Stopwatch & tracking memory allocator, hard-coded in Odin
+#### Procedure dispatch table
+- My `Method` struct + `METHODS` forms a procedure pointer table, accessible from the command line.
+#### Bit-packing (boolean bit arrays)
+- Booleans are typically one byte wide, but can be packed into a bit array of 1-bit-wide booleans.
+    - Bit arrays are comprised of "words", typically unsigned integer types 1 to 8 bytes wide that form the backing array in memory.
+#### Wrappers
+- Sometimes it is beneficial to "wrap" a gritty, detailed API into a simpler, more friendly "wrapper" API.
+
+## Odin-Specific Idiomatic Details Learned
+#### Heap allocation
+- `new()` allocates for a single value of any type, returns a pointer.
+    - `free()` to deallocate
+- `make()` allocates and constructs one of Odin's built-in dynamic collection types, such as a slice or a dynamic array.
+    - `delete()` to deallocate
+#### Defer functionality
+- Odin has a `defer` keyword that queues code to run at the END of a given scope. Can and should often be used for `delete()` and other cleanup / deallocations, written right after allocation for readability.
+    - Deferred statements run in LIFO (last-in, first-out) order, like a stack.
+#### Procedure parameters
+- Parameters like `#optional_ok` and `#force_inline` change the behavior of procedures in the eyes of the compiler.
+#### Context system
+- One of Odin's killer features is the "context" system, where a context struct is automatically passed by pointer to nearly every procedure call. It contains, among other things:
+    - A primary memory allocator `allocator`
+    - A temporary memory allocator `temp_allocator`
+    - A debug logger `logger`
+    - A free-to-use user pointer `user_ptr`
+- Can be used to "inject" behavior into code you don't control (libraries, etc), all WITHOUT changing any function signatures.
+#### Error propagation
+- Most common idiomatic way of handling errors in Odin is to propagate either an "ok" boolean or an "err" OS error type back through a call chain. Usually the final return value of a procedure, and `#optional_ok` allows you to ignore it when you call the procedure.
+#### Parametric polymorphism
+- 
+#### Explicit Procedure overloading
+- Odin has explicit procedure overloading, for when a procedure needs to handle different types of arguments with different implementations, such that using generics will not suffice.
+
+## Documented Learning Process
 #### 2026-02-14 - Dynamic arrays and trial division
 - `[dynamic]` arrays in odin double their capacity when append() reaches the cap. This results in very few reallocation calls for ever-growing arrays (roughly one realloc for every doubling in size). Overhead vs pre-allocated arrays is therefore often negligible, unless dealing with many different growing arrays.
 - Factors come in pairs; For trial division, I only need to check factors up to sqrt(c) to determine if a candidate c is prime or not. Previously my assumption was c / 2.
@@ -41,6 +84,11 @@ An exercise in writing and optimizing prime number generators to familiarize mys
 - Had an idea: Generalize the concept of an odd-numbers-only (not divisible by 2) bit array; What if we tracked only numbers that weren't divisible by the first few primes?
     - Turns out, that's a thing. It's called wheel factorization.
     - Will attempt to implement a wheel-based bit array as a more flexible (and potentially faster / more memory efficient) generalization of my PrimalityBitArray
+
+#### 2026-03-02 - Sieve of Eratosthenes
+- The original sieve for generating prime numbers.
+    - Works by iteratively marking "composite" all multiples of every unmarked (prime) number, starting with 2.
+    - Can be optimized by pairing it with a wheel-based bit array to skip all multiples of a few very small primes.
 
 ## Profiling example 2026-03-02
 ```
