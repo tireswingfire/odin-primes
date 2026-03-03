@@ -70,12 +70,12 @@ main :: proc() {
         fmt.printfln("  Wheel lvl: %d", cfg.wheel_lvl)
         fmt.printfln("Memory Allocation  =======")
         fmt.printfln("  Peak:      %.3f kiB", f32(mem_tracker.peak_memory_allocated) / 1000)
-        fmt.printfln("  Total:     %.3f kiB", f32(mem_tracker.total_memory_allocated) / 1000)
+        fmt.printfln("  Total:     %.3f kiB\n", f32(mem_tracker.total_memory_allocated) / 1000)
     }
     
     // Write primes to file; newline-separated 
     if cfg.do_output {
-        fmt.println("\nWriting to file", cfg.output, "...\n")
+        fmt.println("Writing to file", cfg.output, "...\n")
         err := write_primes_to_file(pbits, cfg.output)
         if err != nil do exit(1, "Failed to write primes to file!")
     }

@@ -178,7 +178,7 @@ primes_sieve_eratos :: proc(pbits: ^PrimalityBitArray, n: u64, allocator := cont
         if !p_ok || p > p_max do break
         
         // Multiplier m will be multiplied by p to get composite numbers
-        m_max := (n / p) + 1
+        m_max := n / p
         m_piter := p_piter  // Start iterating m from where p is
         m := p
         for {
@@ -186,6 +186,8 @@ primes_sieve_eratos :: proc(pbits: ^PrimalityBitArray, n: u64, allocator := cont
             c := p * m
             c_ok := unset_pbit_for(pbits, c)
             if !c_ok do return false
+
+            // fmt.eprintln("setting as composite:", c, "=", p, "*", m)
 
             // Get the next multiplier from the candidates in the bit array
             m_ok: bool
