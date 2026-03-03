@@ -48,8 +48,6 @@ An exercise in writing and optimizing prime number generators to familiarize mys
     - Can be used to "inject" behavior into code you don't control (libraries, etc), all WITHOUT changing any function signatures.
 - Error propagation
     - Most common idiomatic way of handling errors in Odin is to propagate either an "ok" boolean or an "err" OS error type back through a call chain. Usually the final return value of a procedure, and `#optional_ok` allows you to ignore it when you call the procedure.
-- Parametric polymorphism
-    - 
 - Explicit Procedure overloading
     - Odin has explicit procedure overloading, for when a procedure needs to handle different types of arguments with different implementations, such that using generics will not suffice.
 
