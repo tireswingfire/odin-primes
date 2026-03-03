@@ -42,41 +42,101 @@ An exercise in writing and optimizing prime number generators to familiarize mys
     - Turns out, that's a thing. It's called wheel factorization.
     - Will attempt to implement a wheel-based bit array as a more flexible (and potentially faster / more memory efficient) generalization of my PrimalityBitArray
 
-## Profiling example 2026-02-20
+## Profiling example 2026-03-02
 ```
-.\odin-primes.exe -m pbits -n 10_000_000 -p
-Profile:  PBits  =====
-Time:     7632.439 ms
-Maximum:  10_000_000
-Primes:   664579
-Memory allocation  =====
-Peak:     625.064 kiB
-Total:    625.064 kiB
+.\odin-primes.exe -m Naive -n 1_000_000 -p 
+Profile: Naive  ==========
+  Time:      504.592 ms
+  Primes:    78498
+  Maximum:   1000000
+  Wheel lvl: 1
+Memory Allocation  =======
+  Total:     2158.960 kiB
 
-.\odin-primes.exe -m odds -n 10_000_000 -p 
-Profile:  Odds  =====
-Time:     2367.327 ms
-Maximum:  10_000_000
-Primes:   664579
-Memory allocation  =====
-Peak:     9013.608 kiB
-Total:    17401.064 kiB
+.\odin-primes.exe -m Prime -n 1_000_000 -p
+Profile: Prime  ==========
+  Time:      134.423 ms
+  Primes:    78498
+  Maximum:   1000000
+  Wheel lvl: 1
+Memory Allocation  =======
+  Total:     2158.960 kiB
 
-.\odin-primes.exe -m prime -n 10_000_000 -p
-Profile:  Prime  =====
-Time:     2530.478 ms
-Maximum:  10_000_000
-Primes:   664579
-Memory allocation  =====
-Peak:     9013.608 kiB
-Total:    17401.064 kiB
+.\odin-primes.exe -m Odds -n 1_000_000 -p 
+Profile: Odds   ==========
+  Time:      125.537 ms
+  Primes:    78498
+  Maximum:   1000000
+  Wheel lvl: 1
+Memory Allocation  =======
+  Total:     2158.960 kiB
 
-.\odin-primes.exe -m naive -n 10_000_000 -p 
-Profile:  Naive  =====
-Time:     14020.858 ms
-Maximum:  10_000_000
-Primes:   664579
-Memory allocation  =====
-Peak:     9013.608 kiB
-Total:    17401.064 kiB
+.\odin-primes.exe -m Pbits -n 1_000_000 -p
+Profile: PBits  ==========
+  Time:      637.673 ms
+  Primes:    78498
+  Maximum:   1000000
+  Wheel lvl: 1
+Memory Allocation  =======
+  Total:     62.832 kiB
+
+.\odin-primes.exe -m Eratos -n 1_000_000 -w 1 -p 
+Profile: Eratos ==========
+  Time:      67.562 ms
+  Primes:    78498
+  Maximum:   1000000
+  Wheel lvl: 1
+Memory Allocation  =======
+  Peak:      62.832 kiB
+  Total:     62.832 kiB
+
+.\odin-primes.exe -m Eratos -n 1_000_000 -w 2 -p
+Profile: Eratos ==========
+  Time:      36.772 ms
+  Primes:    78498
+  Maximum:   1000000
+  Wheel lvl: 2
+Memory Allocation  =======
+  Peak:      42.000 kiB
+  Total:     42.000 kiB
+
+.\odin-primes.exe -m Eratos -n 1_000_000 -w 3 -p
+Profile: Eratos ==========
+  Time:      28.776 ms
+  Primes:    78498
+  Maximum:   1000000
+  Wheel lvl: 3
+Memory Allocation  =======
+  Peak:      33.664 kiB
+  Total:     33.664 kiB
+
+.\odin-primes.exe -m Eratos -n 1_000_000 -w 4 -p
+Profile: Eratos ==========
+  Time:      30.272 ms
+  Primes:    78498
+  Maximum:   1000000
+  Wheel lvl: 4
+Memory Allocation  =======
+  Peak:      29.288 kiB
+  Total:     29.544 kiB
+
+.\odin-primes.exe -m Eratos -n 1_000_000 -w 5 -p
+Profile: Eratos ==========
+  Time:      98.244 ms
+  Primes:    78498
+  Maximum:   1000000
+  Wheel lvl: 5
+Memory Allocation  =======
+  Peak:      30.272 kiB
+  Total:     33.920 kiB
+
+.\odin-primes.exe -m Eratos -n 1_000_000 -w 6 -p
+Profile: Eratos ==========
+  Time:      796.446 ms
+  Primes:    78498
+  Maximum:   1000000
+  Wheel lvl: 6
+Memory Allocation  =======
+  Peak:      89.712 kiB
+  Total:     154.544 kiB
 ```

@@ -170,7 +170,6 @@ primes_tridiv_pbits :: proc(pbits: ^PrimalityBitArray, n: u64, allocator := cont
 // Sieve of Eratosthenes
 //
 // Iteratively marks composite the multiples of each prime.
-// This is a slightly optimized version, only considering odd multiples.
 primes_sieve_eratos :: proc(pbits: ^PrimalityBitArray, n: u64, allocator := context.allocator) -> (ok: bool) {
     // Setup
     clear_pbits(pbits, true)            // Clear the bit array to all 1 instead of all 0
