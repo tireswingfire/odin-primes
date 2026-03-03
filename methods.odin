@@ -38,6 +38,8 @@ METHODS :: []Method {
     primes_sieve_eratos},
 }
 
+
+
 // Dummy method, returns an empty bit array
 primes_test :: proc(pbits: ^PrimalityBitArray, n: u64, allocator := context.allocator) -> (ok: bool) {
     return true
@@ -140,11 +142,13 @@ primes_tridiv_pbits :: proc(pbits: ^PrimalityBitArray, n: u64, allocator := cont
     // Clear the bit array to all `1 == true`
     clear_pbits(pbits, true)
     // No more dynamic array **
+
     // Outer iteration loop; Check all residual candidates up to n **
     c_piter := make_piterator(pbits)
     for {
         c, _, c_ok := next_candidate(pbits, &c_piter)
         if !c_ok do break  // c_ok will go false when the end of the array is reached
+        
         // Inner iteration loop; check all prime divisors up to sqrt(c) **
         d_max := u64(math.sqrt(f64(c)))
         d_piter := make_piterator(pbits)
@@ -152,6 +156,8 @@ primes_tridiv_pbits :: proc(pbits: ^PrimalityBitArray, n: u64, allocator := cont
             // Get next prime divisor from bit array **
             d, d_ok := next_set_candidate(pbits, &d_piter)
             if !d_ok || d > d_max do break
+            
+            // Trial division
             if c % d == 0 {
                 unset_pbit_for(pbits, c)  // Mark candidate as not prime
                 break
@@ -186,8 +192,6 @@ primes_sieve_eratos :: proc(pbits: ^PrimalityBitArray, n: u64, allocator := cont
             c := p * m
             c_ok := unset_pbit_for(pbits, c)
             if !c_ok do return false
-
-            // fmt.eprintln("setting as composite:", c, "=", p, "*", m)
 
             // Get the next multiplier from the candidates in the bit array
             m_ok: bool

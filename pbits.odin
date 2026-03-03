@@ -16,9 +16,6 @@ PrimalityBitArray :: struct {
     free_pointer: bool,
 }
 
-// Iterator for a PrimalityBitArray
-PrimalityIterator :: distinct ba.Bit_Array_Iterator
-
 
 
 // Creates a PrimalityBitArray
@@ -53,83 +50,19 @@ destroy_pbits :: proc(pbits: ^PrimalityBitArray) {
 // 
 // *Extended wrapper for `bit_array.clear`*
 clear_pbits :: proc(pbits: ^PrimalityBitArray, clear_to: bool = false) {
-    if !clear_to do ba.clear(pbits.arr)
-    else {
-        for i in 0..=pbits.arr.length {
-            ok := set_pbit(pbits, i)
-            if !ok do return
+    if pbits == nil { return }
+
+    // Clear to all 0's
+    ba.clear(pbits.arr)
+
+    // Or clear to all 1's
+    if clear_to {
+        for i in 0..<len(pbits.arr.bits) {
+            pbits.arr.bits[i] = ~u64(0)
         }
+        // First bit is for 1, which should always be unset.
+        unset_pbit_for(pbits, 1)
     }
-    // First bit is for 1, which should always be unset.
-    unset_pbit_for(pbits, 1)
-}
-
-
-
-// Converts a PrimalityBitArray index into a candidate integer according to the wheel's residuals
-candidate_at :: #force_inline proc(pbits: ^PrimalityBitArray, index: u64) -> (candidate: u64) {
-    return wheel_residual_at(pbits.wheel, index)
-}
-
-// Converts a candidate integer into an PrimalityBitArray index
-bit_index_for :: #force_inline proc(pbits: ^PrimalityBitArray, candidate: u64) -> (index: u64) {
-    return wheel_index_for(pbits.wheel, candidate)
-}
-
-// Gets the state of the bit in a PrimalityBitArray that corresponds to a given candidate
-get_pbit_for :: #force_inline proc(pbits: ^PrimalityBitArray, cdt: u64) -> (res: bool, ok: bool) #optional_ok {
-    return get_pbit(pbits, bit_index_for(pbits, cdt))
-}
-
-// Sets the state of the bit in a PrimalityBitArray that corresponds to a given candidate
-// (sets to true by default)
-set_pbit_for :: #force_inline proc(pbits: ^PrimalityBitArray, cdt: u64, set_to: bool = true,
-                                   allocator := context.allocator) ->(ok: bool) {
-    return set_pbit(pbits, bit_index_for(pbits, cdt), set_to, allocator)
-}
-
-// Unsets the bit in a PrimalityBitArray that corresponds to a given candidate
-// (sets to false)
-unset_pbit_for :: #force_inline proc(pbits: ^PrimalityBitArray, cdt: u64, allocator := context.allocator) -> (ok: bool) {
-    return unset_pbit(pbits, bit_index_for(pbits, cdt), allocator)
-}
-
-// Counts how many bits in a PrimalityBitArray are set to `1 == true`
-count_set_bits :: proc(pbits: ^PrimalityBitArray) -> (count: u64) {
-    piter := make_piterator(pbits)
-    count = 0
-    for {
-        _, ok := next_set_candidate(pbits, &piter)
-        if !ok do break  // ok will go false when end of array is reached
-        count += 1
-    }
-    return count
-}
-
-
-
-// Returns the next candidate, including its bit's set-state
-next_candidate :: #force_inline proc(pbits: ^PrimalityBitArray, piter: ^PrimalityIterator) ->
-                                    (cdt: u64, bit_state: bool, ok:bool) {
-    index: u64
-    bit_state, index, ok = iterate_all_pbits(piter)
-    return candidate_at(pbits, index), bit_state, ok
-}
-
-// Returns the next candidate whose bit is set to `1 == true`
-next_set_candidate :: #force_inline proc(pbits: ^PrimalityBitArray, piter: ^PrimalityIterator) ->
-                                        (cdt: u64, ok:bool) {
-    index: u64
-    index, ok = iterate_set_pbits(piter)
-    return candidate_at(pbits, index), ok
-}
-
-// Returns the next candidate whose bit is unset to `0 == false`
-next_unset_candidate :: #force_inline proc(pbits: ^PrimalityBitArray, piter: ^PrimalityIterator) -> 
-                                          (cdt: u64, ok:bool) {
-    index: u64
-    index, ok = iterate_unset_pbits(piter)
-    return candidate_at(pbits, index), ok
 }
 
 
@@ -178,6 +111,48 @@ unpack_candidates :: proc(pbits: ^PrimalityBitArray) -> (candidates: [dynamic]u6
     }
 
     return candidates
+}
+
+
+
+// Converts a PrimalityBitArray index into a candidate integer according to the wheel's residuals
+candidate_at :: #force_inline proc(pbits: ^PrimalityBitArray, index: u64) -> (candidate: u64) {
+    return wheel_residual_at(pbits.wheel, index)
+}
+
+// Converts a candidate integer into an PrimalityBitArray index
+bit_index_for :: #force_inline proc(pbits: ^PrimalityBitArray, candidate: u64) -> (index: u64) {
+    return wheel_index_for(pbits.wheel, candidate)
+}
+
+// Gets the state of the bit in a PrimalityBitArray that corresponds to a given candidate
+get_pbit_for :: #force_inline proc(pbits: ^PrimalityBitArray, cdt: u64) -> (res: bool, ok: bool) #optional_ok {
+    return get_pbit(pbits, bit_index_for(pbits, cdt))
+}
+
+// Sets the state of the bit in a PrimalityBitArray that corresponds to a given candidate
+// (sets to true by default)
+set_pbit_for :: #force_inline proc(pbits: ^PrimalityBitArray, cdt: u64, set_to: bool = true,
+                                   allocator := context.allocator) ->(ok: bool) {
+    return set_pbit(pbits, bit_index_for(pbits, cdt), set_to, allocator)
+}
+
+// Unsets the bit in a PrimalityBitArray that corresponds to a given candidate
+// (sets to false)
+unset_pbit_for :: #force_inline proc(pbits: ^PrimalityBitArray, cdt: u64, allocator := context.allocator) -> (ok: bool) {
+    return unset_pbit(pbits, bit_index_for(pbits, cdt), allocator)
+}
+
+// Counts how many bits in a PrimalityBitArray are set to `1 == true`
+count_set_bits :: proc(pbits: ^PrimalityBitArray) -> (count: u64) {
+    piter := make_piterator(pbits)
+    count = 0
+    for {
+        _, ok := next_set_candidate(pbits, &piter)
+        if !ok do break  // ok will go false when end of array is reached
+        count += 1
+    }
+    return count
 }
 
 
@@ -256,40 +231,4 @@ unsafe_set_pbit :: #force_inline proc(pbits: ^PrimalityBitArray, bit: int) {
 // *Wrapper for `bit_array.unsafe_unset`*
 unsafe_unset_pbit :: #force_inline proc(pbits: ^PrimalityBitArray, bit: int) {
     ba.unsafe_unset(pbits.arr, bit)
-}
-
-
-
-// Wraps a PrimalityBitArray into an iterator
-//
-// *Wrapper for `bit_array.make_iterator`*
-make_piterator :: #force_inline proc(pbits: ^PrimalityBitArray) -> (piter: PrimalityIterator) {
-    return cast(PrimalityIterator)ba.make_iterator(pbits.arr)
-}
-
-// Returns the next bit, including its set-state. ok=false once exhausted
-// 
-// *Wrapper for `bit_array.iterate_by_all`*
-iterate_all_pbits :: #force_inline proc(piter: ^PrimalityIterator) -> (set: bool, index: u64, ok: bool) {
-    idx: int
-    set, idx, ok = ba.iterate_by_all(cast(^ba.Bit_Array_Iterator)piter)
-    return set, u64(idx), ok
-}
-
-// Returns the next 'set' bit (bit with value 1 = true)
-//
-// *Wrapper for `bit_array.iterate_by_set`*
-iterate_set_pbits :: #force_inline proc(piter: ^PrimalityIterator) -> (index: u64, ok: bool) {
-    idx: int
-    idx, ok = ba.iterate_by_set(cast(^ba.Bit_Array_Iterator)piter)
-    return u64(idx), ok
-}
-
-// Returns the next 'unset' bit (bit with value 0 = false)
-//
-// *Wrapper for `bit_array.iterate_by_unset`*
-iterate_unset_pbits :: #force_inline proc(piter: ^PrimalityIterator) -> (index: u64, ok: bool) {
-    idx: int
-    idx, ok = ba.iterate_by_unset(cast(^ba.Bit_Array_Iterator)piter)
-    return u64(idx), ok
 }
